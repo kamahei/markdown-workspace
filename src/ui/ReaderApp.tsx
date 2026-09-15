@@ -9,8 +9,13 @@ import {
   type Settings,
 } from '@core/settings';
 import type { PageInfo } from '@core/reader/classify';
+import type { FileSource } from '@core/fs/types';
+import { basename } from '@core/fs/types';
+import { pathToFileUrl } from '@core/fs/file-url-source';
 import { Breadcrumb, Toolbar, ToolbarButton } from './components/Toolbar';
 import { DocumentView } from './components/DocumentView';
+import { FileTree } from './components/FileTree';
+import { useFileTree } from './hooks/useFileTree';
 
 interface ReaderAppProps {
   page: PageInfo;
@@ -18,6 +23,8 @@ interface ReaderAppProps {
   initialSettings: Settings;
   /** Document the app renders into; passed in so nothing reads a global. */
   doc: Document;
+  /** Backs the sidebar. Null when the folder could not be read. */
+  fileSource: FileSource | null;
   /**
    * Extension side effects arrive as callbacks so this component stays
    * testable without a browser. The composition root wires them to the
@@ -32,13 +39,15 @@ export function ReaderApp({
   source,
   initialSettings,
   doc,
+  fileSource,
   onSaveSettings,
   onOpenWorkspace,
 }: ReaderAppProps) {
   const [settings, setSettings] = useState(initialSettings);
   const [raw, setRaw] = useState(false);
-  const [sidebarVisible, setSidebarVisible] = useState(false);
+  const [sidebarVisible, setSidebarVisible] = useState(true);
 
+  const documentPath = page.path ?? '';
   const sanitizer = useMemo(() => createSanitizer(doc.defaultView!), [doc]);
 
   const result: RenderResult = useMemo(
@@ -46,10 +55,18 @@ export function ReaderApp({
     [source, sanitizer, settings],
   );
 
+  const tree = useFileTree(fileSource, page.directory);
+  const { reveal } = tree;
+
   useEffect(() => {
     applyTheme(doc.documentElement, settings.theme);
     applyContentWidth(doc.documentElement, settings.contentWidth);
   }, [doc, settings.theme, settings.contentWidth]);
+
+  // Highlight the open document in the sidebar.
+  useEffect(() => {
+    if (documentPath) reveal(documentPath);
+  }, [documentPath, reveal]);
 
   const cycleTheme = useCallback(() => {
     const updated = { ...settings, theme: nextTheme(settings.theme) };
@@ -57,16 +74,26 @@ export function ReaderApp({
     onSaveSettings(updated);
   }, [settings, onSaveSettings]);
 
-  const openWorkspace = useCallback(() => {
-    onOpenWorkspace(doc.location.href);
-  }, [doc, onOpenWorkspace]);
+  /**
+   * Reader mode navigates by changing the page rather than swapping the
+   * document in place: each file:// URL is a real page the content script
+   * takes over, so back and forward keep working.
+   */
+  const openPath = useCallback(
+    (path: string, fragment?: string | null) => {
+      doc.location.href = pathToFileUrl(path) + (fragment ? `#${fragment}` : '');
+    },
+    [doc],
+  );
 
-  const reload = useCallback(() => {
-    doc.location.reload();
-  }, [doc]);
-
-  const fileName = page.path?.split('/').pop() ?? 'Document';
-  const directory = page.directory ?? '';
+  const treeOptions = useMemo(
+    () => ({
+      showHidden: settings.fileBrowser.showHiddenFiles,
+      excludedDirectories: settings.fileBrowser.excludedDirectories,
+      sortBy: settings.fileBrowser.sortBy,
+    }),
+    [settings.fileBrowser],
+  );
 
   return (
     <div class="mw-root">
@@ -83,7 +110,11 @@ export function ReaderApp({
               pressed={raw}
               onClick={() => setRaw((v) => !v)}
             />
-            <ToolbarButton icon="reload" label="Reload" onClick={reload} />
+            <ToolbarButton
+              icon="reload"
+              label="Reload"
+              onClick={() => doc.location.reload()}
+            />
             <ToolbarButton
               icon="theme"
               label={`Theme: ${settings.theme}`}
@@ -92,7 +123,7 @@ export function ReaderApp({
             <ToolbarButton
               icon="workspace"
               label="Open in Workspace"
-              onClick={openWorkspace}
+              onClick={() => onOpenWorkspace(doc.location.href)}
             />
           </>
         }
@@ -103,16 +134,41 @@ export function ReaderApp({
           pressed={sidebarVisible}
           onClick={() => setSidebarVisible((v) => !v)}
         />
-        <Breadcrumb directory={directory} name={fileName} />
+        <Breadcrumb
+          directory={page.directory ?? ''}
+          name={basename(documentPath) || 'Document'}
+        />
       </Toolbar>
 
       <div class="mw-body">
+        <nav class="mw-sidebar" hidden={!sidebarVisible} aria-label="Files">
+          <div class="mw-sidebar-header">
+            <span class="mw-sidebar-title" title={page.directory ?? ''}>
+              {basename(page.directory ?? '') || '/'}
+            </span>
+          </div>
+          {fileSource ? (
+            <FileTree
+              state={tree.state}
+              options={treeOptions}
+              onToggle={tree.toggle}
+              onOpen={openPath}
+              onFilterChange={tree.setFilter}
+            />
+          ) : (
+            <p class="mw-empty">This folder could not be read.</p>
+          )}
+        </nav>
+
         <main class="mw-main" id="mw-main">
           <DocumentView
             result={result}
             source={source}
             raw={raw}
             fragment={doc.location.hash}
+            documentPath={documentPath}
+            fileSource={fileSource}
+            onNavigate={openPath}
           />
         </main>
       </div>

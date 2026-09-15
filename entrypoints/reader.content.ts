@@ -38,9 +38,18 @@ export default defineContentScript({
       return;
     }
 
-    // Directory listings are taken over in a later slice. Until then Chrome's
-    // own listing is left alone, which is a usable page rather than a broken
-    // one.
+    if (page.kind === 'directory') {
+      const hide = hideDocument();
+      try {
+        const { mountDirectory } = await import('../src/ui/mount-reader');
+        await mountDirectory({ page });
+      } catch (err) {
+        // Chrome's own listing is a usable page; falling back to it beats a
+        // blank one.
+        hide.restore();
+        console.error('[Markdown Workspace] Failed to render folder', err);
+      }
+    }
   },
 });
 

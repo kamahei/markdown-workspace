@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { applyHeadingAnchors, scrollToFragment, type RenderResult } from '@core/markdown';
+import { classifyLink, resolveImagePath } from '@core/link';
+import type { FileSource } from '@core/fs/types';
 
 interface FrontMatterProps {
   frontMatter: RenderResult['frontMatter'];
@@ -52,8 +54,12 @@ interface DocumentViewProps {
   raw: boolean;
   /** Fragment to scroll to once the document is in the DOM. */
   fragment?: string;
-  /** Called with the mounted article so phase two can enrich it. */
-  onMounted?: (root: HTMLElement) => void;
+  /** Path of this document, used to resolve relative references. */
+  documentPath: string;
+  /** Used to load relative images. Null when the folder is unreadable. */
+  fileSource: FileSource | null;
+  /** Called for links that stay inside the workspace (FR-10, FR-14). */
+  onNavigate: (path: string, fragment?: string | null) => void;
 }
 
 export function DocumentView({
@@ -61,7 +67,9 @@ export function DocumentView({
   source,
   raw,
   fragment,
-  onMounted,
+  documentPath,
+  fileSource,
+  onNavigate,
 }: DocumentViewProps) {
   const ref = useRef<HTMLElement>(null);
 
@@ -75,13 +83,60 @@ export function DocumentView({
     applyHeadingAnchors(root);
     wrapTables(root);
 
+    const cancelled = { value: false };
+    void loadRelativeImages(root, documentPath, fileSource, cancelled);
+
     if (fragment) {
       // After paint, so the target has its final position.
       requestAnimationFrame(() => scrollToFragment(root, fragment));
     }
 
-    onMounted?.(root);
-  }, [result.html, raw, fragment, onMounted]);
+    return () => {
+      cancelled.value = true;
+    };
+  }, [result.html, raw, fragment, documentPath, fileSource]);
+
+  /**
+   * Link handling is delegated from the article rather than bound per anchor:
+   * one listener survives re-renders and covers links added by enrichment.
+   */
+  const onClick = (event: MouseEvent) => {
+    // Leave modified clicks to the browser so "open in new tab" keeps working.
+    if (event.defaultPrevented || event.button !== 0) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+    const anchor = (event.target as Element | null)?.closest?.('a');
+    if (!anchor) return;
+
+    const href = anchor.getAttribute('href');
+    if (!href) return;
+
+    const intent = classifyLink(href, { fromPath: documentPath });
+
+    switch (intent.kind) {
+      case 'fragment': {
+        event.preventDefault();
+        const root = ref.current;
+        if (root) scrollToFragment(root, intent.fragment);
+        break;
+      }
+      case 'document':
+        event.preventDefault();
+        onNavigate(intent.path, intent.fragment);
+        break;
+      case 'directory':
+        event.preventDefault();
+        onNavigate(intent.path);
+        break;
+      // A non-Markdown file and an external URL both go to the browser, which
+      // is what the sanitizer already set target="_blank" for.
+      case 'file':
+      case 'external':
+      case 'ignore':
+      default:
+        break;
+    }
+  };
 
   if (raw) {
     return (
@@ -97,12 +152,49 @@ export function DocumentView({
       <article
         ref={ref}
         class="mw-doc"
+        onClick={onClick}
         // Already sanitized in core; there is no path that reaches here
         // without passing through the sanitizer.
         dangerouslySetInnerHTML={{ __html: result.html }}
       />
     </div>
   );
+}
+
+/**
+ * Rewrites relative image sources so they load (FR-11).
+ *
+ * On a `file://` page the browser resolves relative paths itself, but reading
+ * through the source works on every surface and is what makes images appear in
+ * the workspace, where the document lives on the extension origin.
+ */
+async function loadRelativeImages(
+  root: HTMLElement,
+  documentPath: string,
+  fileSource: FileSource | null,
+  cancelled: { value: boolean },
+): Promise<void> {
+  if (!fileSource || !documentPath) return;
+
+  for (const img of Array.from(root.querySelectorAll('img'))) {
+    if (cancelled.value) return;
+
+    const src = img.getAttribute('src');
+    if (!src) continue;
+
+    const path = resolveImagePath(src, { fromPath: documentPath });
+    if (!path) continue;
+
+    try {
+      const content = await fileSource.readFile(path, { binary: true });
+      if (cancelled.value) return;
+      if (content.url) img.setAttribute('src', content.url);
+    } catch {
+      // A missing image is a missing image, not a broken document.
+      img.classList.add('mw-image-missing');
+      if (!img.getAttribute('alt')) img.setAttribute('alt', `Missing image: ${src}`);
+    }
+  }
 }
 
 /**
