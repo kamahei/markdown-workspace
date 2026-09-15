@@ -1,0 +1,16 @@
+{
+  "// note": "Standalone on purpose. These modules are bundled by scripts/build-lazy.mjs before wxt prepare has run, so they must not extend .wxt/tsconfig.json — a clean clone has no .wxt yet.",
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "verbatimModuleSyntax": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true
+  },
+  "include": ["./**/*.ts"]
+}

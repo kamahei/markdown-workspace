@@ -31,6 +31,10 @@ async function main() {
   await build({
     configFile: false,
     publicDir: false,
+    // These entries are bundled before `wxt prepare` runs, so they must not
+    // pick up the root tsconfig -- it extends .wxt/tsconfig.json, which does
+    // not exist yet on a clean clone.
+    esbuild: { tsconfigRaw: { compilerOptions: { target: 'esnext' } } },
     logLevel: 'warn',
     build: {
       outDir: OUT_DIR,
