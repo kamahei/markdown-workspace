@@ -58,3 +58,6 @@ web-ext.config.ts
 # ---------------------------------------------------------------------------
 /test-results/
 /playwright-report/
+
+# Generated lazy chunks (rebuilt by pnpm build:lazy)
+/public/lazy/

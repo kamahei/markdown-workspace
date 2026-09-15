@@ -18,6 +18,7 @@ import { DropZone } from './components/DropZone';
 import { Tabs, type Tab } from './components/Tabs';
 import { ErrorPanel, FileAccessPanel, LoadingPane } from './components/States';
 import { useFileTree } from './hooks/useFileTree';
+import { useEnrichment } from './hooks/useEnrichment';
 
 export interface RecentEntry {
   id: string;
@@ -69,6 +70,7 @@ export function WorkspaceApp({
   const [sidebarVisible, setSidebarVisible] = useState(true);
 
   const sanitizer = useMemo(() => createSanitizer(doc.defaultView!), [doc]);
+  const enrichment = useEnrichment(sanitizer, settings, doc);
   const tree = useFileTree(fileSource, fileSource ? '/' : null);
   const { reveal } = tree;
 
@@ -316,6 +318,7 @@ export function WorkspaceApp({
                   documentPath={activeId}
                   fileSource={fileSource}
                   onNavigate={(path) => void openPath(path)}
+                  enrichment={enrichment}
                 />
               ) : (
                 <WelcomePane

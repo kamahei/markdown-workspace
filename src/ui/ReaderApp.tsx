@@ -16,6 +16,7 @@ import { Breadcrumb, Toolbar, ToolbarButton } from './components/Toolbar';
 import { DocumentView } from './components/DocumentView';
 import { FileTree } from './components/FileTree';
 import { useFileTree } from './hooks/useFileTree';
+import { useEnrichment } from './hooks/useEnrichment';
 
 interface ReaderAppProps {
   page: PageInfo;
@@ -54,6 +55,8 @@ export function ReaderApp({
     () => renderMarkdown(source, sanitizer, renderOptionsFrom(settings)),
     [source, sanitizer, settings],
   );
+
+  const enrichment = useEnrichment(sanitizer, settings, doc);
 
   const tree = useFileTree(fileSource, page.directory);
   const { reveal } = tree;
@@ -169,6 +172,7 @@ export function ReaderApp({
             documentPath={documentPath}
             fileSource={fileSource}
             onNavigate={openPath}
+            enrichment={enrichment}
           />
         </main>
       </div>

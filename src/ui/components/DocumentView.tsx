@@ -1,6 +1,13 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { applyHeadingAnchors, scrollToFragment, type RenderResult } from '@core/markdown';
 import { classifyLink, resolveImagePath } from '@core/link';
+import {
+  enrichDocument,
+  markPending,
+  type EnrichmentLoaders,
+  type Theme,
+} from '@core/enrich';
+import type { Sanitizer } from '@core/sanitize';
 import type { FileSource } from '@core/fs/types';
 
 interface FrontMatterProps {
@@ -60,6 +67,13 @@ interface DocumentViewProps {
   fileSource: FileSource | null;
   /** Called for links that stay inside the workspace (FR-10, FR-14). */
   onNavigate: (path: string, fragment?: string | null) => void;
+  /** Phase two: highlighting, math and diagrams. Omit to skip enrichment. */
+  enrichment?: {
+    loaders: EnrichmentLoaders;
+    sanitizer: Sanitizer;
+    theme: Theme;
+    features: { highlight: boolean; math: boolean; diagrams: boolean };
+  };
 }
 
 export function DocumentView({
@@ -70,6 +84,7 @@ export function DocumentView({
   documentPath,
   fileSource,
   onNavigate,
+  enrichment,
 }: DocumentViewProps) {
   const ref = useRef<HTMLElement>(null);
 
@@ -86,6 +101,24 @@ export function DocumentView({
     const cancelled = { value: false };
     void loadRelativeImages(root, documentPath, fileSource, cancelled);
 
+    // Phase two. The document is already readable; this only enhances it, so
+    // nothing here is awaited before paint and every failure is contained.
+    if (enrichment) {
+      markPending(root, result.enrichments);
+      void enrichDocument(root, result.enrichments, enrichment.loaders, {
+        theme: enrichment.theme,
+        sanitizer: enrichment.sanitizer,
+        features: enrichment.features,
+        // Live view of the cleanup flag, so an in-flight enrichment stops
+        // as soon as the document is replaced.
+        signal: {
+          get aborted() {
+            return cancelled.value;
+          },
+        },
+      });
+    }
+
     if (fragment) {
       // After paint, so the target has its final position.
       requestAnimationFrame(() => scrollToFragment(root, fragment));
@@ -94,7 +127,15 @@ export function DocumentView({
     return () => {
       cancelled.value = true;
     };
-  }, [result.html, raw, fragment, documentPath, fileSource]);
+  }, [
+    result.html,
+    result.enrichments,
+    raw,
+    fragment,
+    documentPath,
+    fileSource,
+    enrichment,
+  ]);
 
   /**
    * Link handling is delegated from the article rather than bound per anchor:

@@ -19,12 +19,12 @@
   },
   "packageManager": "pnpm@10.32.1",
   "scripts": {
-    "dev": "wxt",
-    "dev:firefox": "wxt -b firefox",
-    "build": "wxt build",
-    "build:firefox": "wxt build -b firefox",
-    "zip": "wxt zip",
-    "zip:firefox": "wxt zip -b firefox",
+    "dev": "pnpm build:lazy && wxt",
+    "dev:firefox": "pnpm build:lazy && wxt -b firefox",
+    "build": "pnpm build:lazy && wxt build",
+    "build:firefox": "pnpm build:lazy && wxt build -b firefox",
+    "zip": "pnpm build:lazy && wxt zip",
+    "zip:firefox": "pnpm build:lazy && wxt zip -b firefox",
     "compile": "tsc --noEmit",
     "typecheck": "wxt prepare && tsc --noEmit",
     "test": "vitest run",
@@ -34,7 +34,8 @@
     "lint": "eslint . && prettier --check .",
     "lint:fix": "eslint . --fix && prettier --write .",
     "check:budget": "node scripts/check-bundle-budget.mjs",
-    "postinstall": "wxt prepare"
+    "postinstall": "wxt prepare",
+    "build:lazy": "node scripts/build-lazy.mjs"
   },
   "dependencies": {
     "dompurify": "^3.4.15",
@@ -63,6 +64,7 @@
     "prettier": "^3.9.6",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.70.0",
+    "vite": "^8.3.0",
     "vitest": "^3.0.0",
     "wxt": "^0.21.4"
   },

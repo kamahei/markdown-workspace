@@ -58,6 +58,21 @@ async function main() {
     process.exit(1);
   }
 
+  // The lazy directory should hold the bulk of the payload. If it is nearly
+  // empty while the reader is large, a library has leaked into the initial
+  // chunk -- which is the regression this budget exists to catch.
+  let lazyTotal = 0;
+  try {
+    const lazyDir = join(OUT_DIR, 'lazy');
+    for (const name of await readdir(lazyDir)) {
+      if (!name.endsWith('.js')) continue;
+      lazyTotal += (await fileSize(join(lazyDir, name))).raw;
+    }
+    console.log(`  lazy/ (on demand)     ${kb(lazyTotal)} raw`);
+  } catch {
+    // No lazy directory yet; the build:lazy step may not have run.
+  }
+
   console.log('\nOK: within budget.');
 }
 

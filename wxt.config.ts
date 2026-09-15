@@ -41,6 +41,15 @@ export default defineConfig({
     options_ui: {
       open_in_tab: true,
     },
+
+    // Chunks a content script imports by URL must be declared here, or
+    // Chrome blocks the request with no visible error.
+    web_accessible_resources: [
+      {
+        resources: ['lazy/*'],
+        matches: ['file:///*', 'http://*/*', 'https://*/*'],
+      },
+    ],
   },
 
   vite: () => ({

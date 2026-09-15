@@ -54,6 +54,8 @@ export default tseslint.config(
       'test-results/**',
       'playwright-report/**',
       '.project/**',
+      // Generated minified bundles; rebuilt by scripts/build-lazy.mjs.
+      'public/lazy/**',
     ],
   },
 
