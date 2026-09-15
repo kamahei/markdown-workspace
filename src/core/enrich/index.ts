@@ -257,7 +257,8 @@ async function runDiagrams(
       }
 
       const holder = el.ownerDocument.createElement('div');
-      holder.innerHTML = options.sanitizer.sanitize(svg);
+      // Diagram SVG keeps its embedded <style>; see Sanitizer.sanitizeDiagram.
+      holder.innerHTML = options.sanitizer.sanitizeDiagram(svg);
       el.insertBefore(holder, el.firstChild);
       setState(el, 'done');
       report.diagrams += 1;

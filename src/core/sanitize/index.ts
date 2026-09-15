@@ -85,6 +85,22 @@ const SVG_ATTRS = [
 export interface Sanitizer {
   /** Returns HTML safe to insert. */
   sanitize(html: string): string;
+
+  /**
+   * Sanitizes diagram SVG, which needs its own `<style>` element.
+   *
+   * Mermaid ships the diagram's styling inside the SVG rather than as
+   * classes, so stripping `<style>` leaves correctly shaped but entirely
+   * black diagrams. This is a *scoped* relaxation: the document sanitizer
+   * still forbids `<style>` outright.
+   *
+   * What makes it acceptable here: DOMPurify filters the CSS itself,
+   * removing `@import`, `expression()` and script URLs; the extension's
+   * Manifest V3 policy blocks remote loads, so CSS cannot reach the network;
+   * and the input is output from a bundled renderer rather than from the
+   * document.
+   */
+  sanitizeDiagram(svg: string): string;
 }
 
 export interface SanitizerOptions {
@@ -135,13 +151,31 @@ export function createSanitizer(
       ? { html: true, svg: true, svgFilters: true, mathMl: true }
       : { html: true },
     // Keep the document's own content; drop only what can execute.
-    FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'base', 'form'],
+    FORBID_TAGS: [
+      'script',
+      'style',
+      'iframe',
+      'object',
+      'embed',
+      'base',
+      'form',
+    ] as string[],
     FORBID_ATTR: ['srcdoc', 'formaction', 'ping'],
+  };
+
+  const diagramConfig = {
+    ...config,
+    ADD_TAGS: ['style'],
+    FORBID_TAGS: config.FORBID_TAGS.filter((tag) => tag !== 'style'),
   };
 
   return {
     sanitize(html: string): string {
       return purify.sanitize(html, config) as unknown as string;
+    },
+
+    sanitizeDiagram(svg: string): string {
+      return purify.sanitize(svg, diagramConfig) as unknown as string;
     },
   };
 }

@@ -109,6 +109,66 @@ test.describe('rich rendering', () => {
     await expect(page.locator('.mw-doc')).toContainText('Text after.');
   });
 
+  test('diagram nodes keep their labels', async ({ context, makeTree, fileUrl }) => {
+    // Regression: Mermaid puts labels in <foreignObject>, which the SVG
+    // sanitizer strips. Diagrams drew perfectly with completely empty nodes.
+    const root = await makeTree({
+      'doc.md': '# Doc\n\n```mermaid\ngraph TD;\n  A[Start here] --> B[End here];\n```\n',
+    });
+    const page = await context.newPage();
+    await page.goto(fileUrl(`${root}/doc.md`));
+
+    await expect(page.locator('.mw-diagram svg')).toBeVisible({ timeout: 25_000 });
+    await expect(page.locator('.mw-diagram svg')).toContainText('Start here');
+    await expect(page.locator('.mw-diagram svg')).toContainText('End here');
+  });
+
+  test('diagram keeps its embedded styling', async ({ context, makeTree, fileUrl }) => {
+    // Regression: the sanitizer forbids <style>, and Mermaid ships the
+    // diagram's styling inside the SVG. Stripping it left black rectangles.
+    const root = await makeTree({
+      'doc.md': '# Doc\n\n```mermaid\ngraph TD;\n  A[One] --> B[Two];\n```\n',
+    });
+    const page = await context.newPage();
+    await page.goto(fileUrl(`${root}/doc.md`));
+    await expect(page.locator('.mw-diagram svg')).toBeVisible({ timeout: 25_000 });
+
+    const hasStyle = await page.evaluate(
+      () => document.querySelector('.mw-diagram svg style') !== null,
+    );
+    expect(hasStyle).toBe(true);
+
+    const fill = await page.evaluate(() => {
+      const node = document.querySelector(
+        '.mw-diagram svg .node rect, .mw-diagram svg rect',
+      );
+      return node ? getComputedStyle(node).fill : null;
+    });
+    // Unstyled SVG shapes default to black; anything else means the embedded
+    // stylesheet survived.
+    expect(fill).not.toBe('rgb(0, 0, 0)');
+  });
+
+  test('math uses the KaTeX fonts, not a browser fallback', async ({
+    context,
+    makeTree,
+    fileUrl,
+  }) => {
+    // Regression: the stylesheet was inlined as a <style>, so its relative
+    // @font-face URLs resolved against the file:// page and never loaded.
+    const root = await makeTree({ 'doc.md': '# Doc\n\nMath: $E = mc^2$\n' });
+    const page = await context.newPage();
+    await page.goto(fileUrl(`${root}/doc.md`));
+
+    await expect(page.locator('.mw-doc .katex').first()).toBeVisible({ timeout: 15_000 });
+
+    const font = await page.evaluate(() => {
+      const el = document.querySelector('.katex .mord');
+      return el ? getComputedStyle(el).fontFamily : null;
+    });
+    expect(font).toMatch(/KaTeX/);
+  });
+
   test('loads no enrichment chunk for a plain document (NFR-2)', async ({
     context,
     makeTree,

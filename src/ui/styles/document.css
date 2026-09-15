@@ -274,6 +274,10 @@
 
 .mw-diagram svg {
   max-width: 100%;
+  /* Mermaid emits width:100% with an intrinsic height, so a wide flowchart
+     stretches to fill whatever it is given. Capping the height keeps one
+     diagram from taking over the page. */
+  max-height: 70vh;
   height: auto;
 }
 

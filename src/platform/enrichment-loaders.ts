@@ -72,9 +72,9 @@ export const enrichmentLoaders: EnrichmentLoaders = {
       async () => {
         const mod = await importLazy<{
           renderMath: MathRenderer['render'];
-          stylesheet(): Promise<string>;
+          STYLESHEET_PATH: string;
         }>('math');
-        await injectStylesheet('mw-katex-styles', mod.stylesheet);
+        linkStylesheet('mw-katex-styles', mod.STYLESHEET_PATH);
         return { render: mod.renderMath };
       },
     ),
@@ -92,16 +92,19 @@ export const enrichmentLoaders: EnrichmentLoaders = {
     ),
 };
 
-/** Injects a stylesheet once per document, for output that needs its own CSS. */
-async function injectStylesheet(id: string, load: () => Promise<string>): Promise<void> {
+/**
+ * Links a stylesheet from the extension, once per document.
+ *
+ * A `<link>` rather than an inlined `<style>` on purpose: the CSS references
+ * its fonts relatively, and only a linked stylesheet resolves those against
+ * the extension origin instead of the page.
+ */
+function linkStylesheet(id: string, file: string): void {
   if (document.getElementById(id)) return;
-  try {
-    const css = await load();
-    const style = document.createElement('style');
-    style.id = id;
-    style.textContent = css;
-    document.head.appendChild(style);
-  } catch {
-    // Math still renders as MathML without the stylesheet; it is just plainer.
-  }
+  const getUrl = browser.runtime.getURL as unknown as (path: string) => string;
+  const link = document.createElement('link');
+  link.id = id;
+  link.rel = 'stylesheet';
+  link.href = getUrl(`/lazy/${file}`);
+  (document.head ?? document.documentElement).appendChild(link);
 }

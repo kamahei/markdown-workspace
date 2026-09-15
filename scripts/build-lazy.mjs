@@ -12,7 +12,7 @@
  * `pnpm build` and `pnpm dev`.
  */
 import { build } from 'vite';
-import { rm, readdir, stat } from 'node:fs/promises';
+import { rm, readdir, stat, copyFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { readFile } from 'node:fs/promises';
@@ -24,6 +24,31 @@ const ENTRIES = {
   math: 'src/lazy/math.entry.ts',
   diagram: 'src/lazy/diagram.entry.ts',
 };
+
+/**
+ * Copies KaTeX's stylesheet and fonts next to the lazy modules.
+ *
+ * The stylesheet is linked by URL rather than inlined as a `<style>`, because
+ * its `@font-face` rules use relative paths. An inlined style resolves those
+ * against the *page*, so on a file:// document the fonts silently fail and
+ * KaTeX renders in whatever the browser falls back to. A linked stylesheet
+ * resolves them against its own URL, which is the extension origin.
+ */
+async function copyKatexAssets() {
+  const dist = 'node_modules/katex/dist';
+  await mkdir(`${OUT_DIR}/fonts`, { recursive: true });
+  await copyFile(`${dist}/katex.min.css`, `${OUT_DIR}/katex.css`);
+
+  let copied = 0;
+  for (const name of await readdir(`${dist}/fonts`)) {
+    // woff2 alone covers every browser this extension targets; shipping the
+    // ttf and woff fallbacks as well would triple the font payload.
+    if (!name.endsWith('.woff2')) continue;
+    await copyFile(`${dist}/fonts/${name}`, `${OUT_DIR}/fonts/${name}`);
+    copied += 1;
+  }
+  console.log(`  katex.css + ${copied} woff2 fonts`);
+}
 
 async function main() {
   await rm(OUT_DIR, { recursive: true, force: true });
@@ -62,6 +87,8 @@ async function main() {
       },
     },
   });
+
+  await copyKatexAssets();
 
   const files = await readdir(OUT_DIR);
   let total = 0;

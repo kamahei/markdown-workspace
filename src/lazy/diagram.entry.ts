@@ -22,6 +22,15 @@ function ensureInitialized(theme: 'light' | 'dark'): void {
     fontFamily: 'inherit',
     // Deterministic ids keep re-renders from accumulating stray elements.
     deterministicIds: true,
+    // Labels as SVG <text>, not HTML inside <foreignObject>.
+    //
+    // foreignObject smuggles arbitrary HTML into an SVG and is a well-known
+    // hazard for SVG sanitizers, so the sanitizer strips it -- which left
+    // correctly drawn diagrams with completely empty nodes. Asking Mermaid for
+    // text labels removes the need to allow it at all.
+    htmlLabels: false,
+    flowchart: { htmlLabels: false },
+    class: { htmlLabels: false },
   });
   initialized = theme;
 }

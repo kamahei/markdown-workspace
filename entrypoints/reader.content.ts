@@ -60,11 +60,25 @@ export default defineContentScript({
  * content is still there if the render fails.
  */
 function hideDocument(): { restore: () => void } {
+  // Tag the elements that exist *now* and hide only those.
+  //
+  // The obvious rule -- `body > *:not(#mw-app)` -- also hides anything added
+  // later, and Mermaid measures text by appending a container to the body.
+  // Hiding it gives the container no layout, and Mermaid fails with
+  // "svg element not in render tree" or "could not find a suitable point for
+  // the given distance". Every diagram in a taken-over page broke that way.
+  const originals = Array.from(document.body?.children ?? []);
+  for (const el of originals) el.setAttribute('data-mw-original', '');
+
   const style = document.createElement('style');
   style.id = 'mw-takeover-hide';
-  style.textContent = 'body > *:not(#mw-app) { display: none !important; }';
+  style.textContent = 'body > [data-mw-original] { display: none !important; }';
   document.documentElement.appendChild(style);
+
   return {
-    restore: () => style.remove(),
+    restore: () => {
+      style.remove();
+      for (const el of originals) el.removeAttribute('data-mw-original');
+    },
   };
 }

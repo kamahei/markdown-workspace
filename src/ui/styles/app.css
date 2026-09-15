@@ -406,6 +406,10 @@
   flex: 1 1 auto;
   overflow: hidden;
   text-overflow: ellipsis;
+  /* The row sets line-height 1 for tight spacing, but that plus overflow
+     hidden clips descenders -- "getting-started.md" loses the tail of its g.
+     The name gets its own line box with room for them. */
+  line-height: 1.6;
 }
 
 .mw-tree-note {

@@ -62,3 +62,6 @@ web-ext.config.ts
 # Generated lazy chunks (rebuilt by pnpm build:lazy)
 /public/lazy/
 /public/icon/
+
+# Generated Chrome Web Store assets (pnpm build:store-assets)
+/store-assets/

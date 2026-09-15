@@ -40,8 +40,14 @@ export function renderMath(request: MathRequest): MathResult {
   }
 }
 
-/** The stylesheet KaTeX output needs, as text, for the caller to inject once. */
-export async function stylesheet(): Promise<string> {
-  const css = await import('katex/dist/katex.min.css?inline');
-  return (css as { default: string }).default;
-}
+/**
+ * KaTeX needs its own stylesheet and web fonts.
+ *
+ * Deliberately *not* inlined into this module. The CSS references its fonts
+ * with relative URLs, and an inlined `<style>` resolves those against the
+ * page -- which on a file:// document means they never load, and KaTeX falls
+ * back to whatever the browser has. The stylesheet is emitted alongside its
+ * fonts by scripts/build-lazy.mjs and linked by URL instead, so the relative
+ * paths resolve against the extension origin.
+ */
+export const STYLESHEET_PATH = 'katex.css';
