@@ -1,0 +1,200 @@
+/* Settings page. Plain vertical form; nothing here needs to be clever. */
+
+body {
+  margin: 0;
+  color: var(--mw-fg);
+  background: var(--mw-bg);
+  font-family: var(--mw-font);
+  font-size: 14px;
+}
+
+.mw-options {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 5rem;
+  box-sizing: border-box;
+}
+
+.mw-options *,
+.mw-options *::before,
+.mw-options *::after {
+  box-sizing: border-box;
+}
+
+.mw-options :focus-visible {
+  outline: 2px solid var(--mw-focus);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.mw-options-header h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.5rem;
+}
+
+.mw-options-header p {
+  margin: 0 0 2rem;
+  color: var(--mw-fg-muted);
+}
+
+.mw-options-section {
+  margin: 0 0 1.5rem;
+  padding: 1.25rem;
+  background: var(--mw-bg-subtle);
+  border: 1px solid var(--mw-border);
+  border-radius: var(--mw-radius-lg);
+}
+
+.mw-options-section h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.mw-options-note,
+.mw-options-warning {
+  margin: 0 0 1rem;
+  color: var(--mw-fg-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.mw-options-warning {
+  color: var(--mw-warning);
+}
+
+.mw-options-alert {
+  border-color: var(--mw-warning);
+  background: var(--mw-warning-bg);
+}
+
+.mw-options-alert h2 {
+  color: var(--mw-warning);
+}
+
+.mw-options-alert p {
+  margin: 0 0 1rem;
+  line-height: 1.6;
+}
+
+.mw-options-danger {
+  border-color: var(--mw-danger);
+}
+
+.mw-options-danger p {
+  margin: 0 0 1rem;
+  color: var(--mw-fg-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.mw-field {
+  display: block;
+  margin: 0 0 1rem;
+}
+
+.mw-field-label {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-weight: 500;
+}
+
+.mw-field-hint {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--mw-fg-subtle);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.mw-select {
+  height: 32px;
+  max-width: 22rem;
+}
+
+.mw-textarea {
+  height: auto;
+  min-height: 6rem;
+  padding: 0.5em;
+  margin-bottom: 0.5rem;
+  font-family: var(--mw-font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.mw-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  cursor: pointer;
+}
+
+.mw-toggle input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+.mw-origin-add {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.mw-origin-add .mw-input {
+  flex: 1 1 auto;
+  height: 32px;
+}
+
+.mw-origin-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--mw-border);
+  border-radius: var(--mw-radius);
+  overflow: hidden;
+}
+
+.mw-origin-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.4rem 0.4rem 0.75rem;
+  background: var(--mw-bg);
+}
+
+.mw-origin-list li + li {
+  border-top: 1px solid var(--mw-border);
+}
+
+.mw-origin-list code {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--mw-font-mono);
+  font-size: 13px;
+}
+
+.mw-origin-disabled {
+  flex: 0 0 auto;
+  padding: 0.1rem 0.4rem;
+  color: var(--mw-warning);
+  background: var(--mw-warning-bg);
+  border-radius: 3px;
+  font-size: 11px;
+  cursor: help;
+}
+
+@media (max-width: 600px) {
+  .mw-options {
+    padding: 1.25rem 1rem 4rem;
+  }
+
+  .mw-origin-add {
+    flex-direction: column;
+  }
+}

@@ -1,0 +1,67 @@
+/* Toolbar popup. Narrow, keyboard reachable, no scrolling. */
+
+body {
+  margin: 0;
+  width: 280px;
+  color: var(--mw-fg);
+  background: var(--mw-bg);
+  font-family: var(--mw-font);
+  font-size: 14px;
+}
+
+.mw-popup {
+  display: flex;
+  flex-direction: column;
+  padding: 0.35rem;
+}
+
+.mw-popup :focus-visible {
+  outline: 2px solid var(--mw-focus);
+  outline-offset: -2px;
+  border-radius: var(--mw-radius);
+}
+
+.mw-popup-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.55rem 0.7rem;
+  color: var(--mw-fg);
+  background: none;
+  border: 0;
+  border-radius: var(--mw-radius);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mw-popup-item:hover:not(:disabled) {
+  background: var(--mw-bg-hover);
+}
+
+.mw-popup-item:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.mw-popup-item strong {
+  font-weight: 500;
+}
+
+.mw-popup-item span {
+  color: var(--mw-fg-subtle);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mw-popup-alert {
+  margin: 0.35rem;
+  padding: 0.5rem 0.7rem;
+  color: var(--mw-warning);
+  background: var(--mw-warning-bg);
+  border-radius: var(--mw-radius);
+  font-size: 12px;
+  line-height: 1.5;
+}

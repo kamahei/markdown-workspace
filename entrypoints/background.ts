@@ -8,6 +8,15 @@ import {
   type Result,
 } from '@core/messaging';
 import { migrateSettings, type Settings } from '@core/settings';
+import {
+  activePatterns,
+  addOrigin,
+  buildHeaderRules,
+  normalizePattern,
+  reconcileOrigins,
+  removeOrigin,
+  RULE_ID_BASE,
+} from '@core/origins';
 
 /**
  * The service worker is stateless by necessity (architecture.md C7): Chrome
@@ -163,6 +172,126 @@ async function openWorkspace(target?: string): Promise<{ opened: boolean }> {
   return { opened: true };
 }
 
+// --- Opt-in remote origins (FR-22..FR-25) ---------------------------------
+
+const READER_SCRIPT_ID = 'mw-reader-remote';
+
+/** Patterns Chrome currently grants, among those the user asked for. */
+async function grantedPatterns(settings: Settings): Promise<string[]> {
+  const wanted = settings.allowedOrigins.map((rule) => rule.pattern);
+  const checks = await Promise.all(
+    wanted.map(async (pattern) => {
+      try {
+        return (await browser.permissions.contains({ origins: [pattern] }))
+          ? pattern
+          : null;
+      } catch {
+        return null;
+      }
+    }),
+  );
+  return checks.filter((p): p is string => p !== null);
+}
+
+/**
+ * Brings the network rules and content script registration in line with the
+ * settings.
+ *
+ * Re-established from storage rather than remembered: the service worker is
+ * ephemeral, so nothing registered in a previous life can be assumed to
+ * still exist (architecture.md C7).
+ */
+async function applyOriginEffects(settings: Settings): Promise<void> {
+  const patterns = activePatterns(settings);
+
+  try {
+    const existing = await browser.declarativeNetRequest.getDynamicRules();
+    await browser.declarativeNetRequest.updateDynamicRules({
+      removeRuleIds: existing
+        .filter((rule) => rule.id >= RULE_ID_BASE)
+        .map((rule) => rule.id),
+      addRules: buildHeaderRules(patterns) as never,
+    });
+  } catch (err) {
+    console.error('[Markdown Workspace] Could not update network rules', err);
+  }
+
+  try {
+    const registered = await browser.scripting.getRegisteredContentScripts({
+      ids: [READER_SCRIPT_ID],
+    });
+    if (registered.length > 0) {
+      await browser.scripting.unregisterContentScripts({ ids: [READER_SCRIPT_ID] });
+    }
+
+    if (patterns.length > 0) {
+      await browser.scripting.registerContentScripts([
+        {
+          id: READER_SCRIPT_ID,
+          matches: patterns,
+          js: ['content-scripts/reader.js'],
+          css: ['content-scripts/reader.css'],
+          runAt: 'document_end',
+          persistAcrossSessions: true,
+        },
+      ]);
+    }
+  } catch (err) {
+    console.error('[Markdown Workspace] Could not update content scripts', err);
+  }
+}
+
+/** Reconciles stored intent with reality, then applies the effects. */
+async function syncOrigins(): Promise<Settings> {
+  const stored = await loadSettings();
+  const reconciled = reconcileOrigins(stored, await grantedPatterns(stored));
+
+  if (reconciled !== stored) {
+    await browser.storage.sync.set({ [SETTINGS_KEY]: reconciled });
+    broadcast({ type: 'settingsChanged', settings: reconciled });
+  }
+
+  await applyOriginEffects(reconciled);
+  return reconciled;
+}
+
+async function handleAddOrigin(input: string) {
+  const settings = await loadSettings();
+  const { ok, pattern } = normalizePattern(input);
+  if (!ok) return { granted: false, settings };
+
+  let granted = false;
+  try {
+    granted = await browser.permissions.request({ origins: [pattern] });
+  } catch {
+    granted = false;
+  }
+
+  if (!granted) return { granted: false, settings };
+
+  const updated = addOrigin(settings, pattern);
+  await saveSettings(updated);
+  await applyOriginEffects(updated);
+  return { granted: true, settings: updated };
+}
+
+async function handleRemoveOrigin(pattern: string) {
+  const settings = await loadSettings();
+  const updated = removeOrigin(settings, pattern);
+  await saveSettings(updated);
+
+  // Revoking matters: leaving the permission behind would mean the extension
+  // still holds access the user believes they removed.
+  try {
+    await browser.permissions.remove({ origins: [pattern] });
+  } catch {
+    // Chrome refuses to revoke a permission it never granted; harmless.
+  }
+
+  await applyOriginEffects(updated);
+  return { removed: true, settings: updated };
+}
+
 async function handle(request: Request): Promise<unknown> {
   switch (request.type) {
     case 'readFile':
@@ -178,6 +307,10 @@ async function handle(request: Request): Promise<unknown> {
     case 'saveSettings':
       await saveSettings(request.settings);
       return { saved: true };
+    case 'addOrigin':
+      return handleAddOrigin(request.pattern);
+    case 'removeOrigin':
+      return handleRemoveOrigin(request.pattern);
     default:
       return undefined;
   }
@@ -203,7 +336,18 @@ export default defineBackground(() => {
     void openWorkspace();
   });
 
+  // Registrations do not survive the worker, so they are rebuilt from storage
+  // on every startup as well as on install (architecture.md C7).
+  browser.runtime.onStartup.addListener(() => void syncOrigins());
+
+  // A permission revoked from chrome://extensions arrives here, which is the
+  // only chance to notice before the user does.
+  browser.permissions.onRemoved.addListener(() => void syncOrigins());
+  browser.permissions.onAdded.addListener(() => void syncOrigins());
+
   browser.runtime.onInstalled.addListener((details) => {
+    void syncOrigins();
+
     if (details.reason === 'install') {
       void browser.tabs.create({ url: browser.runtime.getURL('/onboarding.html') });
     }
