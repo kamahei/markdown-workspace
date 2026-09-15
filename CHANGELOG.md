@@ -26,6 +26,9 @@ Feature-complete for the first Chrome Web Store release. Not yet published.
   access has been granted.
 - Opt-in Markdown rendering on websites, one origin at a time.
 - Reading position restored per document.
+- Settings changes reach open documents without a reload.
+- Japanese, Chinese and Korean text renders without the spurious space a
+  wrapped line would otherwise gain.
 
 ### Security
 

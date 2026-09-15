@@ -41,8 +41,15 @@ like a small static site, with no build step and nothing uploaded anywhere.
 - **Diagrams** — ` ```mermaid ` fenced blocks rendered with
   [Mermaid](https://mermaid.js.org/).
 - **Themes** — light, dark and system-following themes for reading comfort.
+- **CJK-aware** — Japanese, Chinese and Korean text renders without the
+  spurious space a wrapped line would otherwise gain mid-sentence.
 - **Opt-in remote rendering** — Markdown served over `http(s)` renders only for
   origins you explicitly add in the options page. Nothing is enabled by default.
+
+## Try it
+
+`samples/` and `samples-ja/` are short feature tours. Drag either folder onto
+Chrome once the extension is set up.
 
 ## Privacy
 
