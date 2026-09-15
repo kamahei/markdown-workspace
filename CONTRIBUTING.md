@@ -12,7 +12,7 @@ project is laid out, and what a mergeable change looks like.
 ## Getting Started
 
 ```bash
-git clone https://github.com/Kamahei/markdown-workspace.git
+git clone https://github.com/kamahei/markdown-workspace.git
 cd markdown-workspace
 pnpm install
 pnpm dev

@@ -56,7 +56,7 @@ Not yet available. This section will link to the store listing at release.
 ### From source (development build)
 
 ```bash
-git clone https://github.com/Kamahei/markdown-workspace.git
+git clone https://github.com/kamahei/markdown-workspace.git
 cd markdown-workspace
 pnpm install
 pnpm dev
@@ -87,13 +87,13 @@ this and detects whether the permission is active.
 
 ## Usage
 
-| What you want | What to do |
-| --- | --- |
-| Read one Markdown file | Drag the file onto a Chrome window, or open it with <kbd>Ctrl</kbd>+<kbd>O</kbd> |
-| Read a whole folder | Drag the folder onto a Chrome window, or onto the workspace page |
-| Open the workspace directly | Click the Markdown Workspace toolbar icon |
-| See the unrendered source | Use the raw/rendered toggle in the extension popup |
-| Render Markdown from a website | Add that origin in the options page, then reload |
+| What you want                  | What to do                                                                       |
+| ------------------------------ | -------------------------------------------------------------------------------- |
+| Read one Markdown file         | Drag the file onto a Chrome window, or open it with <kbd>Ctrl</kbd>+<kbd>O</kbd> |
+| Read a whole folder            | Drag the folder onto a Chrome window, or onto the workspace page                 |
+| Open the workspace directly    | Click the Markdown Workspace toolbar icon                                        |
+| See the unrendered source      | Use the raw/rendered toggle in the extension popup                               |
+| Render Markdown from a website | Add that origin in the options page, then reload                                 |
 
 ## Browser Support
 

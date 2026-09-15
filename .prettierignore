@@ -1,0 +1,9 @@
+node_modules
+.output
+.wxt
+coverage
+pnpm-lock.yaml
+test-results
+playwright-report
+.project
+AGENTS.md

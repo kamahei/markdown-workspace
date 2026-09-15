@@ -14,4 +14,4 @@ published yet.
 
 - Project scaffolding and documentation.
 
-[Unreleased]: https://github.com/Kamahei/markdown-workspace/commits/main
+[Unreleased]: https://github.com/kamahei/markdown-workspace/commits/main
