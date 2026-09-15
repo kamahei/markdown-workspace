@@ -24,8 +24,10 @@ like a small static site, with no build step and nothing uploaded anywhere.
 
 ## Core Capabilities
 
-- **Render local Markdown** — `.md`, `.markdown`, `.mdown`, `.mkd`, `.mkdn` and
-  `.mdx` files opened from disk render as formatted documents.
+- **Render local Markdown** — `.md`, `.markdown`, `.mdown`, `.mkd` and `.mkdn`
+  files opened from disk render as formatted documents. `.mdx` is rendered as
+  plain Markdown where your system knows the type; some systems hand it to the
+  downloader instead, and no extension can override that.
 - **Built-in file browser** — a sidebar tree for the current folder. Click
   through documents without returning to the file manager.
 - **Open a folder by drag and drop** — drop a directory onto the browser window
