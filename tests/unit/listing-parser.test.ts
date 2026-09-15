@@ -58,8 +58,17 @@ describe('parseDirectoryListing — against a real Chrome capture', () => {
   });
 
   it('converts the epoch-seconds timestamp to milliseconds', () => {
+    // Read the expected value out of the fixture rather than hardcoding it:
+    // the capture spec regenerates this file with fresh timestamps.
+    // Anchored on the full argument list: a lazy match would stop at the
+    // size field, which is also a bare number.
+    const match = REAL_LISTING.match(
+      /addRow\("readme\.md","[^"]*",\d+,\d+,"[^"]*",(\d+),/,
+    )!;
+    const epochSeconds = Number(match[1]);
+
     const entry = entries!.find((e) => e.name === 'readme.md')!;
-    expect(entry.modifiedAt).toBe(1789495712 * 1000);
+    expect(entry.modifiedAt).toBe(epochSeconds * 1000);
     // A plain epoch-seconds value would land in 1970; guard against that.
     expect(new Date(entry.modifiedAt!).getFullYear()).toBeGreaterThan(2000);
   });

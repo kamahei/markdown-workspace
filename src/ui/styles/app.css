@@ -456,3 +456,189 @@
   margin: 0 0 1.25rem;
   color: var(--mw-fg-muted);
 }
+
+/* --- Workspace layout --------------------------------------------------- */
+
+.mw-dropzone {
+  position: relative;
+  height: 100%;
+}
+
+.mw-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* --- Tabs --------------------------------------------------------------- */
+
+.mw-tabs {
+  display: flex;
+  flex: 0 0 auto;
+  overflow-x: auto;
+  background: var(--mw-bg-subtle);
+  border-bottom: 1px solid var(--mw-border);
+  scrollbar-width: thin;
+}
+
+.mw-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 0 0 auto;
+  /* Tabs never shrink below a readable width; the strip scrolls instead. */
+  min-width: 110px;
+  max-width: 220px;
+  height: 32px;
+  padding: 0 0.5rem 0 0.75rem;
+  color: var(--mw-fg-muted);
+  background: transparent;
+  border-right: 1px solid var(--mw-border);
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.mw-tab:hover {
+  background: var(--mw-bg-hover);
+}
+
+.mw-tab.is-active {
+  color: var(--mw-fg);
+  background: var(--mw-bg);
+  box-shadow: inset 0 2px 0 var(--mw-accent);
+}
+
+.mw-tab-title {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mw-tab-close {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: 3px;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.6;
+}
+
+.mw-tab-close:hover {
+  background: var(--mw-bg-active);
+  opacity: 1;
+}
+
+/* --- Drop overlay ------------------------------------------------------- */
+
+.mw-drop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  backdrop-filter: blur(1px);
+}
+
+.mw-drop-overlay.is-valid {
+  background: color-mix(in srgb, var(--mw-accent) 12%, transparent);
+  outline: 3px dashed var(--mw-accent);
+  outline-offset: -12px;
+}
+
+.mw-drop-overlay.is-invalid {
+  background: color-mix(in srgb, var(--mw-danger) 10%, transparent);
+  outline: 3px dashed var(--mw-danger);
+  outline-offset: -12px;
+}
+
+.mw-drop-overlay.is-loading {
+  background: color-mix(in srgb, var(--mw-bg) 70%, transparent);
+}
+
+.mw-drop-message {
+  padding: 0.75rem 1.25rem;
+  color: var(--mw-fg);
+  background: var(--mw-bg-overlay);
+  border: 1px solid var(--mw-border-strong);
+  border-radius: var(--mw-radius-lg);
+  box-shadow: var(--mw-shadow);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* --- Recent folders ----------------------------------------------------- */
+
+.mw-sidebar-note {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  color: var(--mw-fg-muted);
+  background: var(--mw-bg-inset);
+  border-bottom: 1px solid var(--mw-border);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.mw-recent {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--mw-border);
+  max-height: 30vh;
+  overflow-y: auto;
+}
+
+.mw-recent-list {
+  margin: 0;
+  padding: 0 0 0.5rem;
+  list-style: none;
+}
+
+.mw-recent-list li {
+  display: flex;
+  align-items: center;
+}
+
+.mw-recent-item {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.3rem 0.5rem 0.3rem 0.75rem;
+  color: var(--mw-fg-muted);
+  background: none;
+  border: 0;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.mw-recent-item:hover {
+  color: var(--mw-fg);
+  background: var(--mw-bg-hover);
+}
+
+.mw-recent-forget {
+  flex: 0 0 auto;
+  width: 20px;
+  padding: 0;
+  color: var(--mw-fg-subtle);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.mw-recent-forget:hover {
+  color: var(--mw-danger);
+}

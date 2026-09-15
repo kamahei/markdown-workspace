@@ -7,3 +7,7 @@ test-results
 playwright-report
 .project
 AGENTS.md
+
+# Captured browser output. These are verbatim artifacts: reformatting them
+# would mean testing against something Chrome never produced.
+tests/fixtures/
