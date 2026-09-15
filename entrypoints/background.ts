@@ -8,6 +8,7 @@ import {
   type Result,
 } from '@core/messaging';
 import { migrateSettings, type Settings } from '@core/settings';
+import { pruneDocumentState } from '../src/platform/document-state';
 import {
   activePatterns,
   addOrigin,
@@ -339,7 +340,12 @@ export default defineBackground(() => {
 
   // Registrations do not survive the worker, so they are rebuilt from storage
   // on every startup as well as on install (architecture.md C7).
-  browser.runtime.onStartup.addListener(() => void syncOrigins());
+  browser.runtime.onStartup.addListener(() => {
+    void syncOrigins();
+    // Reading state is capped; pruning once per session is enough and
+    // pointless on every scroll.
+    void pruneDocumentState();
+  });
 
   // A permission revoked from chrome://extensions arrives here, which is the
   // only chance to notice before the user does.

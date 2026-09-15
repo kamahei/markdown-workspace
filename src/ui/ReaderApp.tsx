@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'preact/hooks';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { renderMarkdown, type RenderResult } from '@core/markdown';
 import { createSanitizer } from '@core/sanitize';
 import {
@@ -17,6 +17,8 @@ import { DocumentView } from './components/DocumentView';
 import { FileTree } from './components/FileTree';
 import { useFileTree } from './hooks/useFileTree';
 import { useEnrichment } from './hooks/useEnrichment';
+import { useSettingsSync } from './hooks/useSettingsSync';
+import { useScrollMemory } from './hooks/useScrollMemory';
 
 interface ReaderAppProps {
   page: PageInfo;
@@ -33,6 +35,9 @@ interface ReaderAppProps {
    */
   onSaveSettings: (settings: Settings) => void;
   onOpenWorkspace: (target: string) => void;
+  /** Reading position, persisted per document (FR-30). */
+  loadScroll: (path: string) => Promise<number>;
+  saveScroll: (path: string, ratio: number) => void;
 }
 
 export function ReaderApp({
@@ -43,10 +48,16 @@ export function ReaderApp({
   fileSource,
   onSaveSettings,
   onOpenWorkspace,
+  loadScroll,
+  saveScroll,
 }: ReaderAppProps) {
-  const [settings, setSettings] = useState(initialSettings);
+  // Settings come from the broadcast as well as from local edits, so a
+  // change made in the options page reaches an open document without a
+  // reload (FR-26).
+  const [settings, setSettings] = useSettingsSync(initialSettings);
   const [raw, setRaw] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(true);
+  const scroller = useRef<HTMLElement>(null);
 
   const documentPath = page.path ?? '';
   const sanitizer = useMemo(() => createSanitizer(doc.defaultView!), [doc]);
@@ -60,6 +71,9 @@ export function ReaderApp({
 
   const tree = useFileTree(fileSource, page.directory);
   const { reveal } = tree;
+
+  // Restored only once the document is rendered, so scrollHeight is real.
+  useScrollMemory(scroller, raw ? null : documentPath, loadScroll, saveScroll, true);
 
   useEffect(() => {
     applyTheme(doc.documentElement, settings.theme);
@@ -163,7 +177,7 @@ export function ReaderApp({
           )}
         </nav>
 
-        <main class="mw-main" id="mw-main">
+        <main class="mw-main" id="mw-main" ref={scroller}>
           <DocumentView
             result={result}
             source={source}

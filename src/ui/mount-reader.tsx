@@ -13,6 +13,7 @@ import { ReaderApp } from './ReaderApp';
 import { DirectoryApp } from './DirectoryApp';
 import { send } from '../platform/messaging';
 import { fileUrlTransport } from '../platform/file-url-transport';
+import { loadScrollRatio, saveScrollRatio } from '../platform/document-state';
 
 import './styles/theme.css';
 import './styles/app.css';
@@ -98,6 +99,8 @@ export async function mountReader(options: {
       fileSource={fileSource}
       onSaveSettings={persist}
       onOpenWorkspace={openWorkspace}
+      loadScroll={loadScrollRatio}
+      saveScroll={saveScrollRatio}
     />,
     host,
   );

@@ -60,6 +60,12 @@ export default defineConfig({
       {
         resources: ['lazy/*'],
         matches: ['file:///*', 'http://*/*', 'https://*/*'],
+        // use_dynamic_url would stop an arbitrary page probing for these
+        // files to detect the extension, but it was tried and it breaks the
+        // lazy imports: a content script's runtime.getURL() returns the
+        // static URL, which the dynamic mapping then rejects. Rendering
+        // silently loses highlighting, math and diagrams, which is a far
+        // worse trade than the fingerprinting it prevents.
       },
     ],
   },

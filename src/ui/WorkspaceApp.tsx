@@ -18,6 +18,8 @@ import { DropZone } from './components/DropZone';
 import { Tabs, type Tab } from './components/Tabs';
 import { ErrorPanel, FileAccessPanel, LoadingPane } from './components/States';
 import { useFileTree } from './hooks/useFileTree';
+import { useSettingsSync } from './hooks/useSettingsSync';
+import { useScrollMemory } from './hooks/useScrollMemory';
 import { useEnrichment } from './hooks/useEnrichment';
 
 export interface RecentEntry {
@@ -45,6 +47,9 @@ export interface WorkspaceAppProps {
   onOpenRecent: (id: string) => void;
   onForgetRecent: (id: string) => void;
   dragAccepts: (dataTransfer: DataTransfer | null) => boolean;
+  /** Reading position, persisted per document (FR-30). */
+  loadScroll: (path: string) => Promise<number>;
+  saveScroll: (path: string, ratio: number) => void;
 }
 
 export function WorkspaceApp({
@@ -59,8 +64,12 @@ export function WorkspaceApp({
   onOpenRecent,
   onForgetRecent,
   dragAccepts,
+  loadScroll,
+  saveScroll,
 }: WorkspaceAppProps) {
-  const [settings, setSettings] = useState(initialSettings);
+  // Live: a change made in the options page reaches this surface
+  // without a reload (FR-26).
+  const [settings, setSettings] = useSettingsSync(initialSettings);
   const [tabs, setTabs] = useState<Tab[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [documents, setDocuments] = useState<Map<string, OpenDocument>>(new Map());
@@ -75,6 +84,7 @@ export function WorkspaceApp({
   const { reveal } = tree;
 
   const openedInitial = useRef(false);
+  const scroller = useRef<HTMLElement>(null);
 
   useEffect(() => {
     applyTheme(doc.documentElement, settings.theme);
@@ -181,6 +191,16 @@ export function WorkspaceApp({
   );
 
   const active = activeId ? documents.get(activeId) : null;
+
+  // Keyed on the active tab, so switching tabs restores each document's
+  // own position rather than carrying one across.
+  useScrollMemory(
+    scroller,
+    raw ? null : activeId,
+    loadScroll,
+    saveScroll,
+    Boolean(active),
+  );
 
   // Capability-dependent controls are hidden rather than shown as dead
   // buttons: a snapshot source genuinely cannot reload.
@@ -303,7 +323,7 @@ export function WorkspaceApp({
               onClose={closeTab}
             />
 
-            <main class="mw-main" id="mw-main">
+            <main class="mw-main" id="mw-main" ref={scroller}>
               {error?.code === 'file-access-denied' ? (
                 <FileAccessPanel onRecheck={() => doc.location.reload()} />
               ) : error ? (

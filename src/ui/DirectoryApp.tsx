@@ -8,6 +8,7 @@ import { Breadcrumb, Toolbar, ToolbarButton } from './components/Toolbar';
 import { FileTree } from './components/FileTree';
 import { FileAccessPanel, ErrorPanel } from './components/States';
 import { useFileTree } from './hooks/useFileTree';
+import { useSettingsSync } from './hooks/useSettingsSync';
 
 interface DirectoryAppProps {
   page: PageInfo;
@@ -40,7 +41,9 @@ export function DirectoryApp({
   onOpenWorkspace,
   onRecheckAccess,
 }: DirectoryAppProps) {
-  const [settings, setSettings] = useState(initialSettings);
+  // Live: a change made in the options page reaches this surface
+  // without a reload (FR-26).
+  const [settings, setSettings] = useSettingsSync(initialSettings);
   const [checking, setChecking] = useState(false);
 
   const directory = page.directory ?? '/';

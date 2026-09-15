@@ -10,6 +10,7 @@ import {
 } from '@core/settings';
 import { WorkspaceApp, type RecentEntry } from '@ui/WorkspaceApp';
 import { send } from '../../src/platform/messaging';
+import { loadScrollRatio, saveScrollRatio } from '../../src/platform/document-state';
 import {
   acquireFromDrop,
   acquireFromInput,
@@ -162,6 +163,8 @@ function Root({ initialSettings }: { initialSettings: Settings }) {
       onOpenRecent={(id) => void onOpenRecent(id)}
       onForgetRecent={(id) => void onForgetRecent(id)}
       dragAccepts={dragHasFolder}
+      loadScroll={loadScrollRatio}
+      saveScroll={saveScrollRatio}
     />
   );
 }
