@@ -156,5 +156,14 @@ export default tseslint.config(
       // fixture that needs none is written `async ({}, use) => {}`.
       'no-empty-pattern': 'off',
     },
+    languageOptions: {
+      globals: {
+        // Build scripts run in Node, not the browser.
+        Buffer: 'readonly',
+        __dirname: 'readonly',
+        module: 'readonly',
+        require: 'readonly',
+      },
+    },
   },
 );

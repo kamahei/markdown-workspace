@@ -332,9 +332,10 @@ export default defineBackground(() => {
     return true;
   });
 
-  browser.action.onClicked.addListener(() => {
-    void openWorkspace();
-  });
+  // No action.onClicked listener: the toolbar icon opens the popup, which
+  // offers "Open Workspace" among the other quick actions. Chrome never fires
+  // onClicked while a default_popup is declared, so a listener here would be
+  // dead code that looks live.
 
   // Registrations do not survive the worker, so they are rebuilt from storage
   // on every startup as well as on install (architecture.md C7).

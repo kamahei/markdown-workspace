@@ -25,7 +25,7 @@
   /* Text */
   --mw-fg: #1b1f24;
   --mw-fg-muted: #5a6572;
-  --mw-fg-subtle: #828d9a;
+  --mw-fg-subtle: #687380;
   --mw-fg-on-accent: #ffffff;
 
   /* Lines */
@@ -91,8 +91,8 @@
 
     --mw-fg: #e4e9ef;
     --mw-fg-muted: #9aa5b1;
-    --mw-fg-subtle: #74808d;
-    --mw-fg-on-accent: #ffffff;
+    --mw-fg-subtle: #7a8693;
+    --mw-fg-on-accent: #0d1117;
 
     --mw-border: #2c333b;
     --mw-border-strong: #3d454e;
@@ -128,8 +128,8 @@
 
   --mw-fg: #e4e9ef;
   --mw-fg-muted: #9aa5b1;
-  --mw-fg-subtle: #74808d;
-  --mw-fg-on-accent: #ffffff;
+  --mw-fg-subtle: #7a8693;
+  --mw-fg-on-accent: #0d1117;
 
   --mw-border: #2c333b;
   --mw-border-strong: #3d454e;

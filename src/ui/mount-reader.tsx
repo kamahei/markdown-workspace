@@ -1,5 +1,6 @@
 import { render } from 'preact';
 import type { PageInfo } from '@core/reader/classify';
+import { splitFrontMatter } from '@core/markdown';
 import {
   applyContentWidth,
   applyTheme,
@@ -42,6 +43,25 @@ function prepareHost(): HTMLElement {
   return host;
 }
 
+/**
+ * Declares the document's language for assistive technology.
+ *
+ * Chrome's plain-text page carries no `lang`, and this replaces that page, so
+ * the attribute has to come from somewhere. Front matter is authoritative
+ * when the author declared it. Otherwise the browser's own language is a
+ * better guess than a hardcoded "en": a reader on a Japanese profile is far
+ * more likely to be reading Japanese, and mislabelling a document's language
+ * makes a screen reader pronounce it wrongly.
+ */
+function applyLanguage(frontMatter?: Record<string, unknown> | null): void {
+  const declared = frontMatter?.lang ?? frontMatter?.language;
+  const lang =
+    typeof declared === 'string' && declared.trim()
+      ? declared.trim()
+      : navigator.language || 'en';
+  document.documentElement.setAttribute('lang', lang);
+}
+
 function applyChrome(settings: Settings): void {
   // Before first paint: a flash of the wrong theme is a defect, not a detail.
   applyTheme(document.documentElement, settings.theme);
@@ -61,6 +81,7 @@ export async function mountReader(options: {
   const host = prepareHost();
   const title = options.page.path?.split('/').pop();
   if (title) document.title = title;
+  applyLanguage(splitFrontMatter(options.source).frontMatter.data);
 
   // The sidebar is best-effort: a document must still render when its folder
   // cannot be listed.
@@ -85,6 +106,8 @@ export async function mountReader(options: {
 export async function mountDirectory(options: { page: PageInfo }): Promise<void> {
   const settings = await loadSettings();
   applyChrome(settings);
+
+  applyLanguage(null);
 
   const directory = options.page.directory ?? '/';
   const source = new FileUrlSource(fileUrlTransport, directory);

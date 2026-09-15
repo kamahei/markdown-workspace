@@ -7,7 +7,8 @@ file at a time.
 Drop a `.md` file onto Chrome and it renders. Drop a **folder** onto Chrome and
 you get a sidebar file tree you can navigate without ever leaving the browser.
 
-> **Status:** in development. Not yet published to the Chrome Web Store.
+> **Status:** feature-complete, not yet published to the Chrome Web Store.
+> Build it from source with the steps below.
 
 ## Why This Exists
 
@@ -72,6 +73,9 @@ pnpm build
 Then open `chrome://extensions`, enable **Developer mode**, choose **Load
 unpacked**, and select the `.output/chrome-mv3` directory.
 
+`pnpm build` regenerates the icons and the lazily loaded rendering libraries
+before building the extension, so a clean clone needs no extra steps.
+
 ## Required Setup: Allow Access to File URLs
 
 Chrome blocks extensions from reading `file://` pages unless you grant
@@ -110,10 +114,14 @@ pnpm dev          # development build with hot reload
 pnpm build        # production build
 pnpm zip          # packaged archive for store submission
 pnpm test         # unit tests
-pnpm test:e2e     # end-to-end tests
+pnpm test:e2e     # end-to-end tests, including accessibility and performance
 pnpm lint         # lint and format check
 pnpm typecheck    # TypeScript check
+pnpm check:budget # fail if the reader's initial payload grew
 ```
+
+The end-to-end suite needs `pnpm build` first, and the tests that read local
+files skip themselves unless Chrome has granted the extension file access.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full development guide, project
 layout, and pull request process.

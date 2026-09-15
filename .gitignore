@@ -61,3 +61,4 @@ web-ext.config.ts
 
 # Generated lazy chunks (rebuilt by pnpm build:lazy)
 /public/lazy/
+/public/icon/
