@@ -6,6 +6,7 @@ import taskListsPlugin from 'markdown-it-task-lists';
 import type { Token } from 'markdown-it';
 
 import { mathPlugin } from './math-plugin';
+import { cjkPlugin } from './cjk';
 import { SlugRegistry } from './slug';
 import { splitFrontMatter } from './frontmatter';
 import {
@@ -95,6 +96,10 @@ export function createRenderer(options: RenderOptions = {}): MarkdownRenderer {
   md.use(taskListsPlugin, { label: true, labelAfter: true });
 
   if (opts.math) md.use(mathPlugin);
+
+  // Always on: a wrapped Japanese sentence must not gain a space in the
+  // middle of it. Latin text is unaffected.
+  md.use(cjkPlugin);
 
   // --- Fences become code or diagram placeholders -------------------------
 

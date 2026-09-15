@@ -2,26 +2,54 @@
 /**
  * Captures the Chrome Web Store assets.
  *
- * Drives the real extension in a real Chrome against `samples/`, so the
- * screenshots show the product doing the thing rather than a mockup of it.
- * Promo tiles are laid out as HTML and screenshotted the same way, which
- * keeps them editable text rather than a binary nobody can change.
+ * Drives the real extension in a real Chrome against the sample folders, so
+ * the screenshots show the product doing the thing rather than a mockup of
+ * it. The promo tile is laid out as HTML and screenshotted the same way,
+ * which keeps it editable text rather than a binary nobody can change.
+ *
+ * The store allows five screenshots per listing, and this listing is
+ * published in English and Japanese, so each locale gets its own five against
+ * documents in that language. The promo tile is shared.
  *
  * Output: store-assets/ (gitignored; regenerate with pnpm build:store-assets)
  */
 import { chromium } from '@playwright/test';
-import { mkdir, rm, writeFile } from 'node:fs/promises';
-import { mkdtemp } from 'node:fs/promises';
+import { mkdir, rm, writeFile, mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const EXTENSION_PATH = resolve('.output/chrome-mv3');
-const SAMPLES = resolve('samples');
 const OUT = 'store-assets';
 
 /** The store accepts 1280x800 or 640x400; the larger reads better. */
 const SHOT = { width: 1280, height: 800 };
+
+/**
+ * One entry per store locale.
+ *
+ * Paths differ per language because the sample trees are written in that
+ * language -- a Japanese screenshot with English folder names would look
+ * half-translated.
+ */
+const LOCALES = [
+  {
+    id: 'en',
+    samples: resolve('samples'),
+    tour: 'README.md',
+    rich: 'docs/code-and-diagrams.md',
+    folder: 'docs/',
+    mathHeading: 'Math',
+  },
+  {
+    id: 'ja',
+    samples: resolve('samples-ja'),
+    tour: 'README.md',
+    rich: 'docs/コードと図.md',
+    folder: 'docs/',
+    mathHeading: '数式',
+  },
+];
 
 async function launch() {
   const profile = await mkdtemp(join(tmpdir(), 'mw-capture-'));
@@ -46,21 +74,77 @@ async function extensionId(context) {
   return new URL(worker.url()).host;
 }
 
-const fileUrl = (relative) => pathToFileURL(join(SAMPLES, relative)).href;
-
-async function shoot(page, name) {
+async function shoot(page, dir, name) {
   await page.waitForTimeout(900);
-  await page.screenshot({ path: `${OUT}/${name}.png` });
-  console.log(`  ${OUT}/${name}.png`);
+  await page.screenshot({ path: `${dir}/${name}.png` });
+  console.log(`  ${dir}/${name}.png`);
 }
 
-// --- Promo tiles ----------------------------------------------------------
+/**
+ * The five screenshots for one locale.
+ *
+ * Five is the store's limit, so each has to earn its place: what it is, what
+ * it renders, how a folder looks, that there is a dark theme, and that the
+ * privacy claim is visible in the product rather than only in the copy.
+ */
+async function captureLocale(context, id, locale) {
+  const dir = `${OUT}/${locale.id}`;
+  await mkdir(dir, { recursive: true });
+
+  const fileUrl = (relative) => pathToFileURL(join(locale.samples, relative)).href;
+  const page = await context.newPage();
+
+  console.log(`Screenshots (${locale.id})`);
+
+  // 1. A document with the sidebar: the core claim, in one image.
+  await page.goto(fileUrl(locale.tour));
+  await page.waitForSelector('.mw-doc h1', { timeout: 15_000 }).catch(() => {});
+  await shoot(page, dir, '1-document-and-sidebar');
+
+  // 2. Syntax highlighting.
+  await page.goto(fileUrl(locale.rich));
+  await page.waitForSelector('pre.shiki', { timeout: 25_000 }).catch(() => {});
+  await shoot(page, dir, '2-syntax-highlighting');
+
+  // 3. Math and diagrams, further down the same document. Scrolled into view
+  //    on purpose: a screenshot of a feature has to show the feature.
+  await page.waitForSelector('.mw-diagram svg', { timeout: 25_000 }).catch(() => {});
+  await page.evaluate((heading) => {
+    const main = document.querySelector('.mw-main');
+    const target = [...document.querySelectorAll('.mw-doc h2')].find((h) =>
+      h.textContent?.includes(heading),
+    );
+    if (main && target) main.scrollTop = target.offsetTop - 24;
+  }, locale.mathHeading);
+  await shoot(page, dir, '3-math-and-diagrams');
+
+  // 4. The folder view that replaces Chrome's own directory listing, in dark
+  //    theme. Two claims in one image, because there are only five.
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.goto(`${pathToFileURL(locale.samples).href}/${locale.folder}`);
+  await page.waitForSelector('[role="tree"]', { timeout: 15_000 }).catch(() => {});
+  await page
+    .locator('[role="treeitem"]')
+    .first()
+    .click()
+    .catch(() => {});
+  await shoot(page, dir, '4-folder-browser-dark');
+  await page.emulateMedia({ colorScheme: 'light' });
+
+  // 5. Settings, where the privacy claim is visible rather than asserted.
+  await page.goto(`chrome-extension://${id}/options.html`);
+  await shoot(page, dir, '5-settings');
+
+  await page.close();
+}
+
+// --- Promo tile -----------------------------------------------------------
 
 /**
- * Promo tiles as HTML.
+ * The promo tile, as HTML.
  *
- * The store shows these small and next to competitors, so they carry one idea
- * and the product name, not a feature list nobody will read at 440px.
+ * The store shows it small and beside competitors, so it carries one idea and
+ * the product name, not a feature list nobody reads at 440px.
  */
 function promoHtml({ width, height, headline, sub, scale }) {
   return `<!doctype html>
@@ -72,7 +156,8 @@ function promoHtml({ width, height, headline, sub, scale }) {
     padding: ${44 * scale}px;
     background: linear-gradient(135deg, #1f6feb 0%, #1a4fb8 100%);
     color: #fff;
-    font-family: -apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+    font-family: -apple-system, 'Segoe UI', 'Noto Sans', 'Hiragino Kaku Gothic ProN',
+      'Yu Gothic', Meiryo, Helvetica, Arial, sans-serif;
   }
   .mark {
     flex: 0 0 auto; width: ${132 * scale}px; height: ${132 * scale}px;
@@ -126,73 +211,18 @@ async function main() {
 
   const { context, profile } = await launch();
   const id = await extensionId(context);
-  const page = await context.newPage();
 
-  console.log('Screenshots');
+  for (const locale of LOCALES) {
+    await captureLocale(context, id, locale);
+  }
 
-  // 1. A document with the sidebar: the core claim, in one image.
-  await page.goto(fileUrl('README.md'));
-  await page.waitForSelector('.mw-doc h1', { timeout: 15_000 }).catch(() => {});
-  await shoot(page, '01-document-with-sidebar');
-
-  // 2. Syntax highlighting, at the top of the document.
-  await page.goto(fileUrl('docs/code-and-diagrams.md'));
-  await page.waitForSelector('pre.shiki', { timeout: 25_000 }).catch(() => {});
-  await shoot(page, '02-syntax-highlighting');
-
-  // 3. Math and diagrams, which are further down the same document. Scrolled
-  //    into view on purpose: a screenshot of the feature has to show it.
-  await page.waitForSelector('.mw-diagram svg', { timeout: 25_000 }).catch(() => {});
-  await page
-    .locator('.mw-doc h2', { hasText: 'Math' })
-    .scrollIntoViewIfNeeded()
-    .catch(() => {});
-  await page.evaluate(() => {
-    const main = document.querySelector('.mw-main');
-    const heading = [...document.querySelectorAll('.mw-doc h2')].find((h) =>
-      h.textContent?.includes('Math'),
-    );
-    if (main && heading) main.scrollTop = heading.offsetTop - 24;
-  });
-  await shoot(page, '03-math-and-diagrams');
-
-  // 4. The folder view that replaces Chrome's own listing.
-  await page.goto(`${pathToFileURL(SAMPLES).href}/docs/`);
-  await page.waitForSelector('[role="tree"]', { timeout: 15_000 }).catch(() => {});
-  await page
-    .locator('[role="treeitem"]', { hasText: 'reference' })
-    .first()
-    .click()
-    .catch(() => {});
-  await shoot(page, '04-folder-browser');
-
-  // 5. Dark theme, on a document with structure worth showing.
-  await page.emulateMedia({ colorScheme: 'dark' });
-  await page.goto(fileUrl('docs/writing.md'));
-  await page.waitForSelector('.mw-doc table', { timeout: 15_000 }).catch(() => {});
-  await shoot(page, '05-dark-theme');
-  await page.emulateMedia({ colorScheme: 'light' });
-
-  // 6. Settings, which is where the privacy claim is visible.
-  await page.goto(`chrome-extension://${id}/options.html`);
-  await shoot(page, '06-settings');
-
-  await page.close();
-
-  console.log('Promo tiles');
-  await capturePromo(context, 'promo-small-440x280', {
+  console.log('Promo tile');
+  await capturePromo(context, 'promo-440x280', {
     width: 440,
     height: 280,
     scale: 0.72,
     headline: 'Read a whole folder of Markdown',
     sub: 'File tree, working links, nothing uploaded.',
-  });
-  await capturePromo(context, 'promo-marquee-1400x560', {
-    width: 1400,
-    height: 560,
-    scale: 1.85,
-    headline: 'Read a whole folder of Markdown',
-    sub: 'Drop a directory onto Chrome and get a file tree, working links between documents, and code, math and diagrams — all of it local.',
   });
 
   await context.close();
@@ -204,10 +234,14 @@ async function main() {
       'Chrome Web Store assets for Markdown Workspace.',
       '',
       'Generated by: pnpm build:store-assets',
-      'Source content: samples/  (real documentation, not placeholder text)',
       '',
-      'Screenshots are 1280x800 at 2x device scale.',
-      'Promo tiles are 440x280 and 1400x560.',
+      'en/                five screenshots for the default (English) listing',
+      'ja/                five screenshots for the Japanese listing',
+      'promo-440x280.png  small promo tile, shared by both listings',
+      '',
+      'Screenshots are 1280x800 at 2x device scale. Five per locale is the',
+      'store maximum. The content comes from samples/ and samples-ja/, which',
+      'are real documentation rather than placeholder text.',
       '',
       'These are build output, not source. Edit the sample documents or the',
       'promo layout in scripts/capture-store-assets.mjs and regenerate.',
