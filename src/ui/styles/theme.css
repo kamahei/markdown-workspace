@@ -1,0 +1,157 @@
+/*
+ * Theme tokens (FR-27).
+ *
+ * Every colour is defined on the bare `:root` first, then overridden per
+ * theme. No colour may exist only inside a media query or a [data-theme]
+ * block: that is how a page ends up with an unstyled flash, or with one
+ * element that never follows the theme.
+ *
+ * Resolution order: an explicit data-theme wins; otherwise the OS preference
+ * applies. The attribute is stamped before first paint by applyTheme().
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --mw-bg: #ffffff;
+  --mw-bg-subtle: #f6f7f9;
+  --mw-bg-inset: #eef0f3;
+  --mw-bg-overlay: #ffffff;
+  --mw-bg-hover: rgba(16, 22, 31, 0.05);
+  --mw-bg-active: rgba(16, 22, 31, 0.09);
+  --mw-bg-selected: #e4edfb;
+
+  /* Text */
+  --mw-fg: #1b1f24;
+  --mw-fg-muted: #5a6572;
+  --mw-fg-subtle: #828d9a;
+  --mw-fg-on-accent: #ffffff;
+
+  /* Lines */
+  --mw-border: #d7dce2;
+  --mw-border-strong: #b9c1cb;
+
+  /* Accent and status */
+  --mw-accent: #1f6feb;
+  --mw-accent-hover: #1a5fd0;
+  --mw-danger: #b4232b;
+  --mw-danger-bg: #fdeeee;
+  --mw-warning: #8a5b00;
+  --mw-warning-bg: #fdf4e3;
+  --mw-success: #1a7f37;
+
+  /* Syntax host surface */
+  --mw-code-bg: #f6f7f9;
+  --mw-code-fg: #1b1f24;
+  --mw-code-border: #e2e6eb;
+
+  --mw-focus: #1f6feb;
+  --mw-shadow: 0 1px 2px rgba(16, 22, 31, 0.08), 0 4px 16px rgba(16, 22, 31, 0.08);
+
+  /* Type */
+  --mw-font:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans',
+    'Hiragino Kaku Gothic ProN', 'Yu Gothic', Meiryo, Helvetica, Arial, sans-serif;
+  --mw-font-mono:
+    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  --mw-font-size: 16px;
+  --mw-line-height: 1.7;
+
+  /* Measure (FR: contentWidth setting) */
+  --mw-measure: 72ch;
+
+  /* Metrics */
+  --mw-radius: 6px;
+  --mw-radius-lg: 10px;
+  --mw-toolbar-height: 40px;
+  --mw-sidebar-width: 260px;
+}
+
+:root[data-content-width='narrow'] {
+  --mw-measure: 60ch;
+}
+
+:root[data-content-width='wide'] {
+  --mw-measure: 92ch;
+}
+
+/* Dark by OS preference, unless the user explicitly chose light. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+
+    --mw-bg: #14171b;
+    --mw-bg-subtle: #191d22;
+    --mw-bg-inset: #1f242a;
+    --mw-bg-overlay: #1c2026;
+    --mw-bg-hover: rgba(235, 240, 246, 0.07);
+    --mw-bg-active: rgba(235, 240, 246, 0.12);
+    --mw-bg-selected: #1d3557;
+
+    --mw-fg: #e4e9ef;
+    --mw-fg-muted: #9aa5b1;
+    --mw-fg-subtle: #74808d;
+    --mw-fg-on-accent: #ffffff;
+
+    --mw-border: #2c333b;
+    --mw-border-strong: #3d454e;
+
+    --mw-accent: #58a6ff;
+    --mw-accent-hover: #79b8ff;
+    --mw-danger: #f8837c;
+    --mw-danger-bg: #2d1b1c;
+    --mw-warning: #e0b341;
+    --mw-warning-bg: #2b2415;
+    --mw-success: #56d364;
+
+    --mw-code-bg: #1a1e24;
+    --mw-code-fg: #e4e9ef;
+    --mw-code-border: #2c333b;
+
+    --mw-focus: #58a6ff;
+    --mw-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.35);
+  }
+}
+
+/* An explicit dark choice must win over a light OS preference. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --mw-bg: #14171b;
+  --mw-bg-subtle: #191d22;
+  --mw-bg-inset: #1f242a;
+  --mw-bg-overlay: #1c2026;
+  --mw-bg-hover: rgba(235, 240, 246, 0.07);
+  --mw-bg-active: rgba(235, 240, 246, 0.12);
+  --mw-bg-selected: #1d3557;
+
+  --mw-fg: #e4e9ef;
+  --mw-fg-muted: #9aa5b1;
+  --mw-fg-subtle: #74808d;
+  --mw-fg-on-accent: #ffffff;
+
+  --mw-border: #2c333b;
+  --mw-border-strong: #3d454e;
+
+  --mw-accent: #58a6ff;
+  --mw-accent-hover: #79b8ff;
+  --mw-danger: #f8837c;
+  --mw-danger-bg: #2d1b1c;
+  --mw-warning: #e0b341;
+  --mw-warning-bg: #2b2415;
+  --mw-success: #56d364;
+
+  --mw-code-bg: #1a1e24;
+  --mw-code-fg: #e4e9ef;
+  --mw-code-border: #2c333b;
+
+  --mw-focus: #58a6ff;
+  --mw-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --mw-transition: none;
+  }
+}

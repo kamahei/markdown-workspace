@@ -1,0 +1,342 @@
+/*
+ * Rendered Markdown styling.
+ *
+ * Scoped under .mw-doc so it can never leak into the workspace chrome, and so
+ * a page the extension took over cannot be styled by whatever the original
+ * document carried.
+ */
+
+.mw-doc {
+  color: var(--mw-fg);
+  font-family: var(--mw-font);
+  font-size: var(--mw-font-size);
+  line-height: var(--mw-line-height);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* --- Headings ---------------------------------------------------------- */
+
+.mw-doc h1,
+.mw-doc h2,
+.mw-doc h3,
+.mw-doc h4,
+.mw-doc h5,
+.mw-doc h6 {
+  margin: 1.8em 0 0.6em;
+  font-weight: 600;
+  line-height: 1.3;
+  /* Anchor targets must clear the fixed toolbar. */
+  scroll-margin-top: calc(var(--mw-toolbar-height) + 12px);
+}
+
+.mw-doc > :first-child {
+  margin-top: 0;
+}
+
+.mw-doc h1 {
+  font-size: 2em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--mw-border);
+}
+
+.mw-doc h2 {
+  font-size: 1.5em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--mw-border);
+}
+
+.mw-doc h3 {
+  font-size: 1.25em;
+}
+.mw-doc h4 {
+  font-size: 1em;
+}
+.mw-doc h5 {
+  font-size: 0.9em;
+}
+.mw-doc h6 {
+  font-size: 0.85em;
+  color: var(--mw-fg-muted);
+}
+
+/* --- Text -------------------------------------------------------------- */
+
+.mw-doc p,
+.mw-doc ul,
+.mw-doc ol,
+.mw-doc dl,
+.mw-doc blockquote,
+.mw-doc table,
+.mw-doc pre {
+  margin: 0 0 1em;
+}
+
+.mw-doc a {
+  color: var(--mw-accent);
+  text-decoration: none;
+}
+
+.mw-doc a:hover {
+  text-decoration: underline;
+}
+
+.mw-doc strong {
+  font-weight: 600;
+}
+
+.mw-doc hr {
+  height: 1px;
+  margin: 2em 0;
+  border: 0;
+  background: var(--mw-border);
+}
+
+.mw-doc blockquote {
+  padding: 0 1em;
+  color: var(--mw-fg-muted);
+  border-left: 3px solid var(--mw-border-strong);
+}
+
+.mw-doc blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+/* --- Lists ------------------------------------------------------------- */
+
+.mw-doc ul,
+.mw-doc ol {
+  padding-left: 1.7em;
+}
+
+.mw-doc li + li {
+  margin-top: 0.25em;
+}
+
+.mw-doc li > ul,
+.mw-doc li > ol {
+  margin: 0.25em 0;
+}
+
+.mw-doc .task-list-item {
+  list-style: none;
+}
+
+.mw-doc .task-list-item input[type='checkbox'] {
+  margin: 0 0.4em 0 -1.4em;
+  vertical-align: middle;
+}
+
+.mw-doc dt {
+  font-weight: 600;
+  margin-top: 0.8em;
+}
+
+.mw-doc dd {
+  margin: 0.2em 0 0 1.5em;
+}
+
+/* --- Code -------------------------------------------------------------- */
+
+.mw-doc code {
+  font-family: var(--mw-font-mono);
+  font-size: 0.875em;
+}
+
+.mw-doc :not(pre) > code {
+  padding: 0.2em 0.4em;
+  background: var(--mw-bg-inset);
+  border-radius: var(--mw-radius);
+  white-space: break-spaces;
+}
+
+.mw-doc pre {
+  padding: 0.9em 1em;
+  color: var(--mw-code-fg);
+  background: var(--mw-code-bg);
+  border: 1px solid var(--mw-code-border);
+  border-radius: var(--mw-radius);
+  /* Code gets its own scroller so the page body never scrolls sideways. */
+  overflow-x: auto;
+  line-height: 1.55;
+}
+
+.mw-doc pre code {
+  display: block;
+  padding: 0;
+  background: none;
+  white-space: pre;
+}
+
+/* Shiki paints its own background; keep only the frame. */
+.mw-doc pre.shiki {
+  background: var(--mw-code-bg);
+}
+
+/* --- Tables ------------------------------------------------------------ */
+
+.mw-doc .mw-table-scroll {
+  overflow-x: auto;
+  margin: 0 0 1em;
+}
+
+.mw-doc table {
+  border-collapse: collapse;
+  width: max-content;
+  max-width: 100%;
+  margin: 0;
+}
+
+.mw-doc th,
+.mw-doc td {
+  padding: 0.45em 0.85em;
+  border: 1px solid var(--mw-border);
+  text-align: left;
+}
+
+.mw-doc th {
+  background: var(--mw-bg-subtle);
+  font-weight: 600;
+}
+
+.mw-doc tbody tr:nth-child(even) {
+  background: var(--mw-bg-subtle);
+}
+
+/* --- Media ------------------------------------------------------------- */
+
+.mw-doc img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--mw-radius);
+}
+
+.mw-doc img.mw-image-missing {
+  min-width: 120px;
+  padding: 0.6em 0.8em;
+  color: var(--mw-fg-muted);
+  background: var(--mw-bg-subtle);
+  border: 1px dashed var(--mw-border-strong);
+  font-size: 0.85em;
+}
+
+/* --- Footnotes --------------------------------------------------------- */
+
+.mw-doc .footnotes {
+  margin-top: 2.5em;
+  padding-top: 1em;
+  border-top: 1px solid var(--mw-border);
+  font-size: 0.9em;
+  color: var(--mw-fg-muted);
+}
+
+/* --- Enrichment placeholders ------------------------------------------- */
+
+/*
+ * Placeholders are already readable before phase two runs. They must not look
+ * like errors while waiting, and must not collapse to zero height and then
+ * jump — text should never shift under the reader's eyes.
+ */
+
+.mw-math-block {
+  overflow-x: auto;
+  margin: 0 0 1em;
+  text-align: center;
+}
+
+.mw-math[data-mw-state='pending'] {
+  font-family: var(--mw-font-mono);
+  font-size: 0.9em;
+  color: var(--mw-fg-muted);
+}
+
+.mw-math[data-mw-state='error'] {
+  padding: 0.1em 0.3em;
+  color: var(--mw-danger);
+  background: var(--mw-danger-bg);
+  border-radius: var(--mw-radius);
+  font-family: var(--mw-font-mono);
+  font-size: 0.9em;
+}
+
+.mw-diagram {
+  margin: 0 0 1em;
+  overflow-x: auto;
+}
+
+.mw-diagram[data-mw-state='done'] {
+  text-align: center;
+}
+
+.mw-diagram[data-mw-state='done'] .mw-diagram-source {
+  display: none;
+}
+
+.mw-diagram svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.mw-enrich-error {
+  margin: 0 0 0.5em;
+  padding: 0.5em 0.8em;
+  color: var(--mw-danger);
+  background: var(--mw-danger-bg);
+  border: 1px solid var(--mw-danger);
+  border-radius: var(--mw-radius);
+  font-size: 0.85em;
+}
+
+/* --- Front matter ------------------------------------------------------ */
+
+.mw-frontmatter {
+  margin: 0 0 1.8em;
+  padding: 0.8em 1em;
+  background: var(--mw-bg-subtle);
+  border: 1px solid var(--mw-border);
+  border-radius: var(--mw-radius);
+  font-size: 0.9em;
+}
+
+.mw-frontmatter dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25em 1em;
+  margin: 0;
+}
+
+.mw-frontmatter dt {
+  margin: 0;
+  color: var(--mw-fg-muted);
+  font-weight: 600;
+}
+
+.mw-frontmatter dd {
+  margin: 0;
+  word-break: break-word;
+}
+
+.mw-frontmatter-error {
+  color: var(--mw-warning);
+  background: var(--mw-warning-bg);
+}
+
+/* --- Print ------------------------------------------------------------- */
+
+@media print {
+  .mw-doc {
+    font-size: 11pt;
+  }
+
+  .mw-doc pre,
+  .mw-doc blockquote,
+  .mw-doc table {
+    break-inside: avoid;
+  }
+
+  .mw-doc h1,
+  .mw-doc h2,
+  .mw-doc h3 {
+    break-after: avoid;
+  }
+}

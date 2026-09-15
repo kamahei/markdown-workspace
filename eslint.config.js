@@ -117,7 +117,12 @@ export default tseslint.config(
     },
   },
 
-  // UI may use Preact and the DOM, but still may not reach for extension APIs.
+  /*
+   * UI may use Preact and the DOM, but never extension APIs: components take
+   * data and callbacks, which is what keeps them testable without a browser.
+   * src/platform/ is the adapter layer where extension APIs are allowed, and
+   * the mount-* composition roots wire the two together.
+   */
   {
     files: ['src/ui/**/*.{ts,tsx}'],
     rules: {
@@ -145,6 +150,9 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'off',
       'no-restricted-globals': 'off',
       'no-restricted-imports': 'off',
+      // Playwright fixtures declare their dependencies by destructuring, so a
+      // fixture that needs none is written `async ({}, use) => {}`.
+      'no-empty-pattern': 'off',
     },
   },
 );
