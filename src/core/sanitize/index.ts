@@ -20,6 +20,22 @@ const ENRICHMENT_ATTRS = [
   'data-mw-anchor',
 ];
 
+/**
+ * MathML wrappers KaTeX emits for assistive technology.
+ *
+ * `<math>` carries two things: the `<mrow>` tree a screen reader reads, and
+ * the original TeX inside `<semantics><annotation>`. DOMPurify's MathML
+ * profile allows neither wrapper, which left `<math>` holding a valid row
+ * *and* a stray text node of raw TeX -- malformed enough that Narrator read
+ * the expression as nothing at all. The visual half is `aria-hidden`, so
+ * this is the only thing a reader has to go on.
+ *
+ * `<annotation-xml>` is **not** here and must not be: it is an HTML
+ * integration point, which is the classic mutation-XSS vector in MathML.
+ * Plain `<annotation>` is text only and is not an integration point.
+ */
+const MATHML_SEMANTICS = ['semantics', 'annotation'];
+
 /** Attributes KaTeX, Mermaid and task lists emit that must survive. */
 const RENDERER_ATTRS = [
   'aria-hidden',
@@ -40,6 +56,8 @@ const RENDERER_ATTRS = [
   'title',
   'lang',
   'dir',
+  // `<annotation encoding="application/x-tex">`.
+  'encoding',
 ];
 
 const SVG_ATTRS = [
@@ -156,6 +174,7 @@ export function createSanitizer(
     ALLOWED_URI_REGEXP:
       /^(?:(?:https?|mailto|tel|file|blob):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
     ADD_DATA_URI_TAGS: ['img'],
+    ADD_TAGS: allowGraphics ? MATHML_SEMANTICS : [],
     ADD_ATTR: [
       ...ENRICHMENT_ATTRS,
       ...RENDERER_ATTRS,
@@ -173,13 +192,16 @@ export function createSanitizer(
       'embed',
       'base',
       'form',
+      // An HTML integration point inside MathML, and the reason `annotation`
+      // had to be allowed by name rather than by allowing its family.
+      'annotation-xml',
     ] as string[],
     FORBID_ATTR: ['srcdoc', 'formaction', 'ping'],
   };
 
   const diagramConfig = {
     ...config,
-    ADD_TAGS: ['style'],
+    ADD_TAGS: [...config.ADD_TAGS, 'style'],
     FORBID_TAGS: config.FORBID_TAGS.filter((tag) => tag !== 'style'),
   };
 
