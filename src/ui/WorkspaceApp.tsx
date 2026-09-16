@@ -83,6 +83,7 @@ export function WorkspaceApp({
   const enrichment = useEnrichment(sanitizer, settings, doc);
   const tree = useFileTree(fileSource, fileSource ? '/' : null);
   const { reveal, setFilter } = tree;
+  const filterValue = tree.state.filter;
 
   const openedInitial = useRef(false);
   const scroller = useRef<HTMLElement>(null);
@@ -197,17 +198,25 @@ export function WorkspaceApp({
           if (activeId) closeTab(activeId);
         },
         escape: () => {
+          // The shortcut list says Escape clears the filter, so it clears the
+          // filter -- from the tree as well as from the field. It used to do
+          // so only when the field had focus, which meant arrowing into a
+          // narrowed list left no way out of it.
           if (doc.activeElement === filterRef.current) {
             setFilter('');
             filterRef.current?.blur();
             return;
           }
-          // Out of the sidebar and back to the document, so Space and
-          // PageDown scroll again instead of driving the tree.
+          if (filterValue) {
+            setFilter('');
+            return;
+          }
+          // Nothing left to clear: out of the sidebar and back to the
+          // document, so Space and PageDown scroll again.
           if (doc.activeElement?.closest('[role="tree"]')) scroller.current?.focus();
         },
       }),
-      [doc, setFilter, activeId, closeTab],
+      [doc, setFilter, filterValue, activeId, closeTab],
     ),
   );
 

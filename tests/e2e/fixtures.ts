@@ -12,6 +12,17 @@ import { pathToFileURL } from 'node:url';
 const EXTENSION_PATH = resolve('.output/chrome-mv3');
 
 /**
+ * Which browser to drive.
+ *
+ * Defaults to the Chromium that Playwright installs, which is what CI has.
+ * `MW_BROWSER_CHANNEL=msedge` or `=chrome` runs the same suite against an
+ * installed browser instead, which is how the "other Chromium browsers" line
+ * in the manual checklist gets answered by running it rather than by
+ * assuming a shared engine means shared behaviour.
+ */
+const CHANNEL = process.env.MW_BROWSER_CHANNEL ?? 'chromium';
+
+/**
  * Extensions only load in a persistent context, so these tests launch their own
  * browser rather than using Playwright's default fixtures.
  *
@@ -54,7 +65,7 @@ export const test = base.extend<Fixtures>({
     await seedFileAccess(userDataDir);
 
     const context = await chromium.launchPersistentContext(userDataDir, {
-      channel: 'chromium',
+      channel: CHANNEL,
       args: [
         `--disable-extensions-except=${EXTENSION_PATH}`,
         `--load-extension=${EXTENSION_PATH}`,

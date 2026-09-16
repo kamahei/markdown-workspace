@@ -678,3 +678,43 @@
   font-size: 13px;
   line-height: 1;
 }
+
+/* --- Print --------------------------------------------------------------
+ *
+ * The reading surface is a fixed-height flex column with its own scroller,
+ * which is right on screen and wrong on paper: printing it produced a single
+ * page with everything below the fold cut off, framed by a toolbar and a file
+ * tree nobody wants on paper. Print gets the document, laid out as a document.
+ */
+
+@media print {
+  .mw-root {
+    display: block;
+    height: auto;
+    overflow: visible;
+  }
+
+  .mw-body {
+    display: block;
+  }
+
+  .mw-main {
+    overflow: visible;
+    height: auto;
+  }
+
+  /* Chrome, in both senses. None of it means anything on paper, and the
+     skip link would print as a stray "Skip to content". */
+  .mw-toolbar,
+  .mw-sidebar,
+  .mw-tabs,
+  .mw-skip-link {
+    display: none !important;
+  }
+
+  .mw-pane,
+  .mw-doc {
+    max-width: none;
+    margin: 0;
+  }
+}

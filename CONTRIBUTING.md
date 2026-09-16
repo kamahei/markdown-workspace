@@ -81,6 +81,20 @@ Run `pnpm lint`, `pnpm typecheck`, and `pnpm test` before opening a pull
 request. If your change touches rendering or file access, run `pnpm test:e2e`
 too.
 
+### Running against another browser
+
+The end-to-end suite drives the Chromium that Playwright installs. To run the
+same suite against an installed browser instead:
+
+```bash
+MW_BROWSER_CHANNEL=msedge pnpm test:e2e     # or =chrome
+```
+
+This is how the "other Chromium browsers" line in the release checklist gets
+answered — by running it, rather than by assuming a shared engine means
+shared behaviour. Firefox is not covered this way: Playwright cannot load an
+extension into it, so `pnpm build:firefox` still has to be checked by hand.
+
 ## Adding Dependencies
 
 Manifest V3 forbids loading remote code, so **every dependency is bundled into

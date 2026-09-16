@@ -53,6 +53,7 @@ export function DirectoryApp({
   const directory = page.directory ?? '/';
   const tree = useFileTree(fileSource, directory);
   const { setFilter } = tree;
+  const filterValue = tree.state.filter;
   const { handOffTreeFocus } = useTreeFocusHandoff(doc);
 
   useEffect(() => {
@@ -84,13 +85,17 @@ export function DirectoryApp({
       () => ({
         focusFilter: () => filterRef.current?.focus(),
         escape: () => {
+          // Clears the filter wherever focus is. There is no document pane to
+          // fall back to on this page, so that is all Escape does here.
           if (doc.activeElement === filterRef.current) {
             setFilter('');
             filterRef.current?.blur();
+            return;
           }
+          if (filterValue) setFilter('');
         },
       }),
-      [doc, setFilter],
+      [doc, setFilter, filterValue],
     ),
   );
 
