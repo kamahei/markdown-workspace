@@ -9,6 +9,7 @@ import {
   type TreeOptions,
   type TreeState,
 } from '@core/fs/tree';
+import { t } from '../i18n';
 
 const ROW_HEIGHT = 24;
 
@@ -212,8 +213,8 @@ export function FileTree({
           ref={filterRef}
           type="search"
           class="mw-input"
-          placeholder="Filter files…"
-          aria-label="Filter files by name"
+          placeholder={t('filterFilesPlaceholder')}
+          aria-label={t('filterFilesLabel')}
           value={state.filter}
           onInput={(e) => onFilterChange((e.target as HTMLInputElement).value)}
           onKeyDown={(e) => {
@@ -235,14 +236,14 @@ export function FileTree({
       >
         {rows.length === 0 ? (
           <p class="mw-empty">
-            {state.filter ? 'No files match this filter.' : 'This folder is empty.'}
+            {state.filter ? t('noFilesMatchFilter') : t('folderIsEmpty')}
           </p>
         ) : (
           <div
             ref={treeRef}
             id="mw-tree"
             role="tree"
-            aria-label="Files"
+            aria-label={t('filesNav')}
             class="mw-tree"
             tabIndex={0}
             onKeyDown={onKeyDown}

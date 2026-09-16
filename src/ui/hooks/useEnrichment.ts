@@ -3,6 +3,7 @@ import type { EnrichmentLoaders, Theme } from '@core/enrich';
 import type { Sanitizer } from '@core/sanitize';
 import { resolveTheme, type Settings } from '@core/settings';
 import { enrichmentLoaders } from '../../platform/enrichment-loaders';
+import { t } from '../i18n';
 
 /**
  * Builds the phase-two configuration, and re-runs it when the theme changes.
@@ -34,6 +35,15 @@ export function useEnrichment(sanitizer: Sanitizer, settings: Settings, doc: Doc
         highlight: settings.features.highlight,
         math: settings.features.math,
         diagrams: settings.features.diagrams,
+      },
+      // Core has no translator; the strings it shows arrive with the rest of
+      // its inputs.
+      messages: {
+        diagramFailed: t('diagramFailed'),
+        expressionFailed: t('expressionFailed'),
+        diagramLabel: t('diagramLabel'),
+        diagramFallbackLabel: t('diagramFallbackLabel'),
+        diagramSourceIntro: t('diagramSourceIntro'),
       },
     }),
     [

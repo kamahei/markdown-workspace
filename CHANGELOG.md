@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Japanese throughout. The interface follows the browser's language, and the
+  extension's name and description do too. Messages live in one typed
+  catalogue per language, so the compiler catches a key that exists in one
+  and not the other.
+
+  This is also what makes a Japanese store listing possible: the Chrome Web
+  Store derives the languages a listing may be written in from the `_locales`
+  folders in the uploaded package, so an extension that is not localized gets
+  one language tab and no way to add another.
+
 ## [0.1.0] - 2026-09-16
 
 First release. Built from source or from the archive attached to this tag;

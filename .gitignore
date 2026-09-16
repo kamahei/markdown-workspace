@@ -63,5 +63,8 @@ web-ext.config.ts
 /public/lazy/
 /public/icon/
 
+# Generated from src/ui/i18n (rebuilt by pnpm build:locales)
+/public/_locales/
+
 # Generated Chrome Web Store assets (pnpm build:store-assets)
 /store-assets/

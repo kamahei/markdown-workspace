@@ -2,6 +2,8 @@ import { render } from 'preact';
 import { useCallback, useEffect, useState } from 'preact/hooks';
 import { applyTheme, migrateSettings, nextTheme, type Settings } from '@core/settings';
 import { normalizePattern } from '@core/origins';
+import { t } from '@ui/i18n';
+import { useBrowserTranslations } from '../../src/platform/i18n';
 import { send } from '../../src/platform/messaging';
 
 import '@ui/styles/theme.css';
@@ -69,15 +71,15 @@ function Popup({ initial }: { initial: Settings }) {
 
       const granted = await chrome.permissions.request({ origins: [origin] });
       if (!granted) {
-        setMessage('Chrome did not grant access to this site.');
+        setMessage(t('siteNotGranted'));
         return;
       }
 
       const result = await send({ type: 'addOrigin', pattern: origin });
       setSettings(result.settings);
-      if (!result.granted) setMessage('That site was allowed but could not be saved.');
+      if (!result.granted) setMessage(t('siteNotSaved'));
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : 'That site could not be added.');
+      setMessage(err instanceof Error ? err.message : t('siteNotAdded'));
     } finally {
       setBusy(false);
     }
@@ -93,8 +95,8 @@ function Popup({ initial }: { initial: Settings }) {
           window.close();
         }}
       >
-        <strong>Open Workspace</strong>
-        <span>Browse a folder of Markdown</span>
+        <strong>{t('popupOpenWorkspace')}</strong>
+        <span>{t('popupOpenWorkspaceHint')}</span>
       </button>
 
       {origin ? (
@@ -104,15 +106,13 @@ function Popup({ initial }: { initial: Settings }) {
           disabled={busy}
           onClick={() => void toggleOrigin()}
         >
-          <strong>
-            {allowed ? 'Stop rendering this site' : 'Render Markdown on this site'}
-          </strong>
+          <strong>{allowed ? t('popupStopThisSite') : t('popupRenderThisSite')}</strong>
           <span>{origin}</span>
         </button>
       ) : null}
 
       <button type="button" class="mw-popup-item" onClick={cycleTheme}>
-        <strong>Theme</strong>
+        <strong>{t('popupTheme')}</strong>
         <span>{settings.theme}</span>
       </button>
 
@@ -124,8 +124,8 @@ function Popup({ initial }: { initial: Settings }) {
           window.close();
         }}
       >
-        <strong>Settings</strong>
-        <span>Themes, rendering, websites</span>
+        <strong>{t('popupSettings')}</strong>
+        <span>{t('popupSettingsHint')}</span>
       </button>
 
       {message ? (
@@ -136,8 +136,7 @@ function Popup({ initial }: { initial: Settings }) {
 
       {fileAccess === false ? (
         <div class="mw-popup-alert" role="alert">
-          Local files are blocked. Enable &ldquo;Allow access to file URLs&rdquo; on this
-          extension&rsquo;s details page.
+          {t('popupFileAccessBlocked')}
         </div>
       ) : null}
     </div>
@@ -145,6 +144,10 @@ function Popup({ initial }: { initial: Settings }) {
 }
 
 async function main() {
+  // Before the first render: a label that paints in English and then
+  // swaps is worse than one that waits a tick.
+  useBrowserTranslations();
+
   let settings: Settings;
   try {
     settings = await send({ type: 'getSettings' });

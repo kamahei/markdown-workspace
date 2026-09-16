@@ -22,6 +22,7 @@ import { useSettingsSync } from './hooks/useSettingsSync';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useScrollMemory } from './hooks/useScrollMemory';
 import { useEnrichment } from './hooks/useEnrichment';
+import { t, themeKey } from './i18n';
 
 export interface RecentEntry {
   id: string;
@@ -136,7 +137,7 @@ export function WorkspaceApp({
         setError(
           err instanceof FileSourceError
             ? { code: err.code, message: err.message }
-            : { code: 'unknown', message: 'This document could not be opened.' },
+            : { code: 'unknown', message: t('documentCouldNotBeOpened') },
         );
       } finally {
         setLoading(false);
@@ -249,7 +250,7 @@ export function WorkspaceApp({
     <DropZone onDrop={onDropFolder} accepts={dragAccepts}>
       <div class="mw-root">
         <a class="mw-skip-link" href="#mw-main">
-          Skip to content
+          {t('skipToContent')}
         </a>
 
         <Toolbar
@@ -258,7 +259,7 @@ export function WorkspaceApp({
               {active ? (
                 <ToolbarButton
                   icon="raw"
-                  label={raw ? 'Show rendered document' : 'Show Markdown source'}
+                  label={raw ? t('showRenderedDocument') : t('showMarkdownSource')}
                   pressed={raw}
                   onClick={() => setRaw((v) => !v)}
                 />
@@ -266,13 +267,13 @@ export function WorkspaceApp({
               {canRefresh ? (
                 <ToolbarButton
                   icon="reload"
-                  label="Reload from disk"
+                  label={t('reloadFromDisk')}
                   onClick={tree.refresh}
                 />
               ) : null}
               <ToolbarButton
                 icon="theme"
-                label={`Theme: ${settings.theme}`}
+                label={t('themeIs', [t(themeKey(settings.theme))])}
                 onClick={cycleTheme}
               />
             </>
@@ -280,7 +281,7 @@ export function WorkspaceApp({
         >
           <ToolbarButton
             icon="sidebar"
-            label="Toggle sidebar"
+            label={t('toggleSidebar')}
             pressed={sidebarVisible}
             onClick={() => setSidebarVisible((v) => !v)}
           />
@@ -290,14 +291,14 @@ export function WorkspaceApp({
         </Toolbar>
 
         <div class="mw-body">
-          <nav class="mw-sidebar" hidden={!sidebarVisible} aria-label="Files">
+          <nav class="mw-sidebar" hidden={!sidebarVisible} aria-label={t('filesNav')}>
             <div class="mw-sidebar-header">
-              <span class="mw-sidebar-title">Folders</span>
+              <span class="mw-sidebar-title">{t('workspaceFolders')}</span>
               <button
                 type="button"
                 class="mw-btn"
-                aria-label="Open a folder"
-                title="Open a folder"
+                aria-label={t('openAFolder')}
+                title={t('openAFolder')}
                 onClick={onPickFolder}
               >
                 +
@@ -307,10 +308,7 @@ export function WorkspaceApp({
             {fileSource ? (
               <>
                 {!fileSource.canPersist ? (
-                  <p class="mw-sidebar-note">
-                    This folder is a one-time snapshot. It cannot be reloaded or reopened
-                    later.
-                  </p>
+                  <p class="mw-sidebar-note">{t('snapshotFolderNote')}</p>
                 ) : null}
                 <FileTree
                   filterRef={filterRef}
@@ -322,13 +320,13 @@ export function WorkspaceApp({
                 />
               </>
             ) : (
-              <p class="mw-empty">Drop a folder here to start.</p>
+              <p class="mw-empty">{t('dropAFolderHere')}</p>
             )}
 
             {recent.length > 0 ? (
               <div class="mw-recent">
                 <div class="mw-sidebar-header">
-                  <span>Recent</span>
+                  <span>{t('workspaceRecent')}</span>
                 </div>
                 <ul class="mw-recent-list">
                   {recent.map((item) => (
@@ -343,7 +341,7 @@ export function WorkspaceApp({
                       <button
                         type="button"
                         class="mw-recent-forget"
-                        aria-label={`Forget ${item.displayName}`}
+                        aria-label={t('forgetFolder', [item.displayName])}
                         onClick={() => onForgetRecent(item.id)}
                       >
                         ×
@@ -405,15 +403,13 @@ function WelcomePane({
 }) {
   return (
     <div class="mw-pane">
-      <h1 class="mw-folder-title">Markdown Workspace</h1>
+      <h1 class="mw-folder-title">{t('extName')}</h1>
       <p class="mw-folder-hint">
-        {hasFolder
-          ? 'Pick a document from the sidebar to start reading.'
-          : 'Drop a folder anywhere on this page to open it, or choose one below.'}
+        {hasFolder ? t('pickADocument') : t('dropAFolderAnywhere')}
       </p>
       {!hasFolder ? (
         <button type="button" class="mw-btn mw-btn-primary" onClick={onPickFolder}>
-          Choose a folder
+          {t('chooseAFolder')}
         </button>
       ) : null}
     </div>

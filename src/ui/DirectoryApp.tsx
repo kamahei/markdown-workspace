@@ -12,6 +12,7 @@ import { useFileTree } from './hooks/useFileTree';
 import { useSettingsSync } from './hooks/useSettingsSync';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useTreeFocusHandoff } from './hooks/useTreeFocusHandoff';
+import { t, themeKey } from './i18n';
 
 interface DirectoryAppProps {
   page: PageInfo;
@@ -125,21 +126,21 @@ export function DirectoryApp({
   return (
     <div class="mw-root">
       <a class="mw-skip-link" href="#mw-main">
-        Skip to content
+        {t('skipToContent')}
       </a>
 
       <Toolbar
         actions={
           <>
-            <ToolbarButton icon="reload" label="Reload" onClick={tree.refresh} />
+            <ToolbarButton icon="reload" label={t('reload')} onClick={tree.refresh} />
             <ToolbarButton
               icon="theme"
-              label={`Theme: ${settings.theme}`}
+              label={t('themeIs', [t(themeKey(settings.theme))])}
               onClick={cycleTheme}
             />
             <ToolbarButton
               icon="workspace"
-              label="Open in Workspace"
+              label={t('openInWorkspace')}
               onClick={() => onOpenWorkspace(doc.location.href)}
             />
           </>
@@ -149,7 +150,7 @@ export function DirectoryApp({
       </Toolbar>
 
       <div class="mw-body">
-        <nav class="mw-sidebar" aria-label="Files">
+        <nav class="mw-sidebar" aria-label={t('filesNav')}>
           <SidebarHeader
             root={directory}
             onNavigateUp={(parent) => {
@@ -183,8 +184,8 @@ export function DirectoryApp({
                 code: accessError,
                 message:
                   accessError === 'unparseable-listing'
-                    ? 'This folder listing could not be read. Try opening the folder in the workspace instead.'
-                    : 'This folder could not be opened.',
+                    ? t('folderListingUnreadable')
+                    : t('folderCouldNotBeOpened'),
               }}
               onRetry={tree.refresh}
             />
@@ -192,9 +193,7 @@ export function DirectoryApp({
             <div class="mw-pane">
               <h1 class="mw-folder-title">{basename(directory) || '/'}</h1>
               <p class="mw-folder-hint">
-                {indexName
-                  ? 'This folder has an index document.'
-                  : 'Pick a document from the sidebar to start reading.'}
+                {indexName ? t('folderHasIndexDocument') : t('pickADocument')}
               </p>
               {indexName ? (
                 <button
@@ -202,7 +201,7 @@ export function DirectoryApp({
                   class="mw-btn mw-btn-primary"
                   onClick={() => openPath(`${directory.replace(/\/$/, '')}/${indexName}`)}
                 >
-                  Open {indexName}
+                  {t('openNamedDocument', [indexName])}
                 </button>
               ) : null}
             </div>

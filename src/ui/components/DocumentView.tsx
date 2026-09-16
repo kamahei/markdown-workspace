@@ -5,10 +5,12 @@ import {
   enrichDocument,
   markPending,
   type EnrichmentLoaders,
+  type EnrichMessages,
   type Theme,
 } from '@core/enrich';
 import type { Sanitizer } from '@core/sanitize';
 import type { FileSource } from '@core/fs/types';
+import { t } from '../i18n';
 
 interface FrontMatterProps {
   frontMatter: RenderResult['frontMatter'];
@@ -24,7 +26,7 @@ function FrontMatterHeader({ frontMatter }: FrontMatterProps) {
   if (frontMatter.error) {
     return (
       <div class="mw-frontmatter mw-frontmatter-error">
-        <strong>Front matter could not be parsed:</strong> {frontMatter.error}
+        <strong>{t('frontMatterUnparseable', [frontMatter.error ?? ''])}</strong>
         <pre class="mw-raw">{frontMatter.raw}</pre>
       </div>
     );
@@ -73,6 +75,7 @@ interface DocumentViewProps {
     sanitizer: Sanitizer;
     theme: Theme;
     features: { highlight: boolean; math: boolean; diagrams: boolean };
+    messages: EnrichMessages;
   };
 }
 
@@ -110,6 +113,7 @@ export function DocumentView({
         theme: enrichment.theme,
         sanitizer: enrichment.sanitizer,
         features: enrichment.features,
+        messages: enrichment.messages,
         // Live view of the cleanup flag, so an in-flight enrichment stops
         // as soon as the document is replaced.
         signal: {

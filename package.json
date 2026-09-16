@@ -38,7 +38,8 @@
     "postinstall": "wxt prepare",
     "build:lazy": "node scripts/build-lazy.mjs",
     "build:icons": "node scripts/build-icons.mjs",
-    "build:assets": "pnpm build:icons && pnpm build:lazy",
+    "build:locales": "node scripts/build-locales.mjs",
+    "build:assets": "pnpm build:icons && pnpm build:locales && pnpm build:lazy",
     "build:store-assets": "pnpm build && node scripts/capture-store-assets.mjs"
   },
   "dependencies": {

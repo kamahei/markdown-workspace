@@ -97,7 +97,14 @@ export function matchShortcut(event: KeyEventLike): ShortcutAction | null {
 export interface ShortcutDescription {
   /** Display form, already platform-appropriate. */
   keys: string;
-  description: string;
+  /**
+   * Message key, not prose.
+   *
+   * Core has no translator and should not: it takes plain inputs and returns
+   * plain outputs. The UI looks this up, which keeps the one list that
+   * `matchShortcut` is tested against usable in both languages.
+   */
+  descriptionKey: string;
 }
 
 /**
@@ -110,15 +117,15 @@ export interface ShortcutDescription {
 export function shortcutList(platform: 'mac' | 'other' = 'other'): ShortcutDescription[] {
   const mod = platform === 'mac' ? 'Cmd' : 'Ctrl';
   return [
-    { keys: `${mod}+B`, description: 'Toggle the sidebar' },
-    { keys: `${mod}+\\`, description: 'Toggle raw / rendered' },
-    { keys: '/', description: 'Focus the file filter' },
-    { keys: 'Alt+W', description: 'Close the active tab (workspace)' },
-    { keys: 'Esc', description: 'Clear the filter' },
-    { keys: '↑ ↓', description: 'Move through the file tree' },
-    { keys: '→', description: 'Open a folder, or step into it' },
-    { keys: '←', description: 'Close a folder, or go to the one above' },
-    { keys: 'Enter', description: 'Open the selected file' },
-    { keys: 'Home / End', description: 'Jump to the first or last file' },
+    { keys: `${mod}+B`, descriptionKey: 'shortcutToggleSidebar' },
+    { keys: `${mod}+\\`, descriptionKey: 'shortcutToggleRaw' },
+    { keys: '/', descriptionKey: 'shortcutFocusFilter' },
+    { keys: 'Alt+W', descriptionKey: 'shortcutCloseTab' },
+    { keys: 'Esc', descriptionKey: 'shortcutClearFilter' },
+    { keys: '↑ ↓', descriptionKey: 'shortcutMoveTree' },
+    { keys: '→', descriptionKey: 'shortcutOpenFolder' },
+    { keys: '←', descriptionKey: 'shortcutCloseFolder' },
+    { keys: 'Enter', descriptionKey: 'shortcutOpenFile' },
+    { keys: 'Home / End', descriptionKey: 'shortcutFirstLast' },
   ];
 }

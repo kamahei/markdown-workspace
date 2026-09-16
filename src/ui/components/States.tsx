@@ -1,4 +1,5 @@
 import type { FileError } from '@core/messaging';
+import { interpolate, t } from '../i18n';
 
 interface FileAccessPanelProps {
   onRecheck: () => void;
@@ -21,21 +22,16 @@ export function FileAccessPanel({ onRecheck, checking }: FileAccessPanelProps) {
 
   return (
     <div class="mw-state mw-state-warning" role="alert">
-      <h2>Chrome is blocking access to this file</h2>
-      <p>
-        Markdown Workspace needs permission to read local files. Chrome requires you to
-        enable this yourself — an extension cannot do it for you.
-      </p>
+      <h2>{t('fileAccessBlockedTitle')}</h2>
+      <p>{t('fileAccessBlockedBody')}</p>
       <ol>
-        <li>
-          Open <code>chrome://extensions</code>
-        </li>
-        <li>Find Markdown Workspace and click Details</li>
-        <li>Enable &ldquo;Allow access to file URLs&rdquo;</li>
+        <li>{interpolate(t('fileAccessStep1'), [<code>chrome://extensions</code>])}</li>
+        <li>{t('fileAccessStep2')}</li>
+        <li>{t('fileAccessStep3')}</li>
       </ol>
       <div class="mw-state-actions">
         <button type="button" class="mw-btn mw-btn-secondary" onClick={copy}>
-          Copy chrome://extensions
+          {t('copyExtensionsAddress')}
         </button>
         <button
           type="button"
@@ -43,7 +39,7 @@ export function FileAccessPanel({ onRecheck, checking }: FileAccessPanelProps) {
           onClick={onRecheck}
           disabled={checking}
         >
-          {checking ? 'Checking…' : 'Check again'}
+          {checking ? t('checking') : t('checkAgain')}
         </button>
       </div>
     </div>
@@ -58,12 +54,12 @@ interface ErrorPanelProps {
 export function ErrorPanel({ error, onRetry }: ErrorPanelProps) {
   return (
     <div class="mw-state mw-state-error" role="alert">
-      <h2>This file could not be opened</h2>
+      <h2>{t('fileCouldNotBeOpened')}</h2>
       <p>{error.message}</p>
       {onRetry ? (
         <div class="mw-state-actions">
           <button type="button" class="mw-btn mw-btn-primary" onClick={onRetry}>
-            Try again
+            {t('tryAgain')}
           </button>
         </div>
       ) : null}
@@ -74,7 +70,7 @@ export function ErrorPanel({ error, onRetry }: ErrorPanelProps) {
 export function LoadingPane() {
   return (
     <div class="mw-empty" role="status">
-      Loading…
+      {t('loading')}
     </div>
   );
 }

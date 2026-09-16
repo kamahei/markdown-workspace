@@ -6,6 +6,8 @@ import { send } from '../../src/platform/messaging';
 import '@ui/styles/theme.css';
 import '@ui/styles/app.css';
 import '@ui/styles/onboarding.css';
+import { interpolate, t } from '@ui/i18n';
+import { useBrowserTranslations } from '../../src/platform/i18n';
 
 /**
  * Post-install setup (FR-28).
@@ -55,36 +57,35 @@ function Onboarding() {
 
   return (
     <main class="mw-onboarding">
-      <h1>Markdown Workspace is installed</h1>
-      <p class="mw-onboarding-lead">
-        One step left. Chrome blocks extensions from reading local files until you allow
-        it, and this is the only thing it will not let the extension do for you.
-      </p>
+      <h1>{t('onboardingHeading')}</h1>
+      <p class="mw-onboarding-lead">{t('onboardingLead')}</p>
 
       <ol class="mw-onboarding-steps">
         <li>
           <span class="mw-step-number">1</span>
           <div>
-            Open <code>chrome://extensions</code>
+            {interpolate(t('onboardingStep1'), [<code>chrome://extensions</code>])}
             <button type="button" class="mw-btn mw-btn-secondary" onClick={copy}>
-              {copied ? 'Copied' : 'Copy address'}
+              {copied ? t('copied') : t('copyAddress')}
             </button>
-            <p class="mw-step-note">
-              Chrome does not allow an extension to open this page, so the address has to
-              be pasted into the address bar.
-            </p>
+            <p class="mw-step-note">{t('onboardingStep1Note')}</p>
           </div>
         </li>
         <li>
           <span class="mw-step-number">2</span>
           <div>
-            Find <strong>Markdown Workspace</strong> and click <strong>Details</strong>
+            {interpolate(t('onboardingStep2'), [
+              <strong>{t('onboardingStep2Name')}</strong>,
+              <strong>{t('onboardingStep2Details')}</strong>,
+            ])}
           </div>
         </li>
         <li>
           <span class="mw-step-number">3</span>
           <div>
-            Turn on <strong>Allow access to file URLs</strong>
+            {interpolate(t('onboardingStep3'), [
+              <strong>{t('onboardingStep3Toggle')}</strong>,
+            ])}
           </div>
         </li>
       </ol>
@@ -94,16 +95,15 @@ function Onboarding() {
         role="status"
         aria-live="polite"
       >
-        {granted === null ? 'Checking…' : null}
+        {granted === null ? t('checking') : null}
         {granted === false ? (
           <>
-            <strong>Not enabled yet.</strong> This updates on its own once you flip the
-            toggle — no need to come back and reload.
+            <strong>{t('onboardingNotEnabled')}</strong> {t('onboardingNotEnabledBody')}
           </>
         ) : null}
         {granted ? (
           <>
-            <strong>Ready.</strong> Local Markdown files will now render.
+            <strong>{t('onboardingReady')}</strong> {t('onboardingReadyBody')}
           </>
         ) : null}
       </div>
@@ -115,33 +115,33 @@ function Onboarding() {
             class="mw-btn mw-btn-primary"
             onClick={() => void send({ type: 'openWorkspace' })}
           >
-            Open the workspace
+            {t('onboardingOpenWorkspace')}
           </button>
         </div>
       ) : null}
 
       <section class="mw-onboarding-next">
-        <h2>How to use it</h2>
+        <h2>{t('onboardingHowToUse')}</h2>
         <ul>
+          <li>{interpolate(t('onboardingUseFile'), [<code>.md</code>])}</li>
           <li>
-            Drag a <code>.md</code> file onto Chrome to read it.
+            {interpolate(t('onboardingUseFolder'), [
+              <strong>{t('onboardingUseFolderWord')}</strong>,
+            ])}
           </li>
-          <li>
-            Drag a <strong>folder</strong> onto Chrome to browse it, with a sidebar and
-            working links between documents.
-          </li>
-          <li>Click the toolbar icon any time to open the workspace.</li>
+          <li>{t('onboardingUseToolbar')}</li>
         </ul>
-        <p class="mw-step-note">
-          Markdown on websites is ignored unless you add the site in Settings. Nothing is
-          enabled by default and nothing you open leaves your device.
-        </p>
+        <p class="mw-step-note">{t('onboardingPrivacyNote')}</p>
       </section>
     </main>
   );
 }
 
 async function main() {
+  // Before the first render: a label that paints in English and then
+  // swaps is worse than one that waits a tick.
+  useBrowserTranslations();
+
   let settings: Settings;
   try {
     settings = await send({ type: 'getSettings' });
@@ -150,7 +150,7 @@ async function main() {
   }
 
   applyTheme(document.documentElement, settings.theme);
-  document.title = 'Set up Markdown Workspace';
+  document.title = t('onboardingTitle');
   render(<Onboarding />, document.getElementById('app')!);
 }
 

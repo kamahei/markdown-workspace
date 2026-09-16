@@ -8,6 +8,19 @@ const sanitizer = createSanitizer(window);
 
 const ALL_FEATURES = { highlight: true, math: true, diagrams: true };
 
+/**
+ * Core has no translator, so the strings it shows are inputs like any other.
+ * The suite passes the English ones, which is what the product passes in an
+ * English browser.
+ */
+const MESSAGES = {
+  diagramFailed: 'Could not render this diagram',
+  expressionFailed: 'Could not render this expression',
+  diagramLabel: '$1 diagram',
+  diagramFallbackLabel: 'Diagram',
+  diagramSourceIntro: 'Diagram source. $1',
+};
+
 function mount(markdown: string) {
   const result = renderMarkdown(markdown, sanitizer);
   const root = document.createElement('div');
@@ -45,6 +58,7 @@ describe('enrichDocument — highlighting (FR-5)', () => {
       theme: 'light',
       sanitizer,
       features: ALL_FEATURES,
+      messages: MESSAGES,
     });
 
     expect(report.highlighted).toBe(1);
@@ -57,6 +71,7 @@ describe('enrichDocument — highlighting (FR-5)', () => {
       theme: 'light',
       sanitizer,
       features: ALL_FEATURES,
+      messages: MESSAGES,
     });
 
     expect(report.highlighted).toBe(0);
@@ -71,7 +86,7 @@ describe('enrichDocument — highlighting (FR-5)', () => {
       root,
       result.enrichments,
       fakeLoaders({ highlight: async () => Promise.reject(new Error('network')) }),
-      { theme: 'light', sanitizer, features: ALL_FEATURES },
+      { theme: 'light', sanitizer, features: ALL_FEATURES, messages: MESSAGES },
     );
 
     expect(report.failures).toBe(1);
@@ -88,7 +103,7 @@ describe('enrichDocument — highlighting (FR-5)', () => {
       root,
       result.enrichments,
       fakeLoaders({ highlight: async () => ({ highlight }) }),
-      { theme: 'dark', sanitizer, features: ALL_FEATURES },
+      { theme: 'dark', sanitizer, features: ALL_FEATURES, messages: MESSAGES },
     );
     expect(highlight).toHaveBeenCalledWith(expect.objectContaining({ theme: 'dark' }));
   });
@@ -101,6 +116,7 @@ describe('enrichDocument — math (FR-6)', () => {
       theme: 'light',
       sanitizer,
       features: ALL_FEATURES,
+      messages: MESSAGES,
     });
 
     expect(report.math).toBe(2);
@@ -117,7 +133,7 @@ describe('enrichDocument — math (FR-6)', () => {
           render: () => ({ html: '', error: 'Expected group after \\frac' }),
         }),
       }),
-      { theme: 'light', sanitizer, features: ALL_FEATURES },
+      { theme: 'light', sanitizer, features: ALL_FEATURES, messages: MESSAGES },
     );
 
     expect(report.failures).toBe(1);
@@ -135,6 +151,7 @@ describe('enrichDocument — diagrams (FR-7)', () => {
       theme: 'light',
       sanitizer,
       features: ALL_FEATURES,
+      messages: MESSAGES,
     });
 
     expect(report.diagrams).toBe(1);
@@ -155,7 +172,7 @@ describe('enrichDocument — diagrams (FR-7)', () => {
           render: async () => ({ svg: null, error: 'Parse error on line 1' }),
         }),
       }),
-      { theme: 'light', sanitizer, features: ALL_FEATURES },
+      { theme: 'light', sanitizer, features: ALL_FEATURES, messages: MESSAGES },
     );
 
     expect(report.failures).toBe(1);
@@ -181,7 +198,7 @@ describe('enrichDocument — diagrams (FR-7)', () => {
           },
         }),
       }),
-      { theme: 'light', sanitizer, features: ALL_FEATURES },
+      { theme: 'light', sanitizer, features: ALL_FEATURES, messages: MESSAGES },
     );
 
     const states = Array.from(root.querySelectorAll('.mw-diagram')).map((el) =>
@@ -202,7 +219,7 @@ describe('enrichDocument — cost control (NFR-2)', () => {
       root,
       result.enrichments,
       { highlight, math, diagram },
-      { theme: 'light', sanitizer, features: ALL_FEATURES },
+      { theme: 'light', sanitizer, features: ALL_FEATURES, messages: MESSAGES },
     );
 
     // This is the whole point of the two-phase contract: a plain document
@@ -221,7 +238,7 @@ describe('enrichDocument — cost control (NFR-2)', () => {
       root,
       result.enrichments,
       { ...fakeLoaders(), math, diagram },
-      { theme: 'light', sanitizer, features: ALL_FEATURES },
+      { theme: 'light', sanitizer, features: ALL_FEATURES, messages: MESSAGES },
     );
 
     expect(math).not.toHaveBeenCalled();
@@ -239,6 +256,7 @@ describe('enrichDocument — cost control (NFR-2)', () => {
         theme: 'light',
         sanitizer,
         features: { highlight: false, math: true, diagrams: true },
+        messages: MESSAGES,
       },
     );
     expect(highlight).not.toHaveBeenCalled();
@@ -256,7 +274,7 @@ describe('enrichDocument — cost control (NFR-2)', () => {
       root,
       result.enrichments,
       { ...fakeLoaders(), math: async () => ({ render }) },
-      { theme: 'light', sanitizer, features: ALL_FEATURES, signal },
+      { theme: 'light', sanitizer, features: ALL_FEATURES, messages: MESSAGES, signal },
     );
 
     // Abandoning work for a document that was replaced beats finishing it.
@@ -277,7 +295,7 @@ describe('enrichDocument — security', () => {
           },
         }),
       }),
-      { theme: 'light', sanitizer, features: ALL_FEATURES },
+      { theme: 'light', sanitizer, features: ALL_FEATURES, messages: MESSAGES },
     );
 
     // Enrichment output is not trusted either; it passes through the same
@@ -299,7 +317,7 @@ describe('enrichDocument — security', () => {
           }),
         }),
       }),
-      { theme: 'light', sanitizer, features: ALL_FEATURES },
+      { theme: 'light', sanitizer, features: ALL_FEATURES, messages: MESSAGES },
     );
 
     expect(root.innerHTML).not.toMatch(/onload/i);
@@ -348,6 +366,7 @@ describe('enrichDocument — diagrams reach assistive technology (NFR-7)', () =>
       theme: 'light',
       sanitizer,
       features: ALL_FEATURES,
+      messages: MESSAGES,
     });
 
     const svg = root.querySelector('svg')!;
@@ -363,6 +382,7 @@ describe('enrichDocument — diagrams reach assistive technology (NFR-7)', () =>
       theme: 'light',
       sanitizer,
       features: ALL_FEATURES,
+      messages: MESSAGES,
     });
 
     const svg = root.querySelector('svg')!;
@@ -384,6 +404,7 @@ describe('enrichDocument — diagrams reach assistive technology (NFR-7)', () =>
       theme: 'light',
       sanitizer,
       features: ALL_FEATURES,
+      messages: MESSAGES,
     });
 
     const svg = root.querySelector('svg')!;

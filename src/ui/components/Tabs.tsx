@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 export interface Tab {
   id: string;
   title: string;
@@ -21,7 +22,7 @@ export function Tabs({ tabs, activeId, onSelect, onClose }: TabsProps) {
   if (tabs.length === 0) return null;
 
   return (
-    <div class="mw-tabs" role="tablist" aria-label="Open documents">
+    <div class="mw-tabs" role="tablist" aria-label={t('openDocumentsTabs')}>
       {tabs.map((tab) => (
         <div
           key={tab.id}
@@ -49,7 +50,7 @@ export function Tabs({ tabs, activeId, onSelect, onClose }: TabsProps) {
           <button
             type="button"
             class="mw-tab-close"
-            aria-label={`Close ${tab.title}`}
+            aria-label={t('closeTab', [tab.title])}
             onClick={(e) => {
               e.stopPropagation();
               onClose(tab.id);

@@ -31,6 +31,7 @@ import {
 import '@ui/styles/theme.css';
 import '@ui/styles/app.css';
 import '@ui/styles/document.css';
+import { useBrowserTranslations } from '../../src/platform/i18n';
 
 /**
  * Composition root for the workspace page.
@@ -170,6 +171,10 @@ function Root({ initialSettings }: { initialSettings: Settings }) {
 }
 
 async function main() {
+  // Before the first render: a label that paints in English and then
+  // swaps is worse than one that waits a tick.
+  useBrowserTranslations();
+
   let settings: Settings;
   try {
     settings = await send({ type: 'getSettings' });

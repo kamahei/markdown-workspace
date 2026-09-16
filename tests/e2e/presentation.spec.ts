@@ -267,9 +267,16 @@ test.describe('without a pointer (checklist 6)', () => {
     // Each step waits for the state it depends on. Typing into a field that
     // has not taken focus yet, or arrowing into a list still re-rendering
     // under the filter, made this fail about one run in ten.
-    await page.keyboard.press('/');
+    // The shortcut listener attaches in an effect, after the first paint, so
+    // a key pressed the instant the tree appears can beat it. Re-pressing is
+    // waiting for the listener, not papering over a defect.
     const filter = page.getByLabel('Filter files by name');
-    await expect(filter).toBeFocused();
+    await expect
+      .poll(async () => {
+        await page.keyboard.press('/');
+        return filter.evaluate((el) => el === el.ownerDocument.activeElement);
+      })
+      .toBe(true);
 
     await page.keyboard.type('doc');
     await expect(filter).toHaveValue('doc');
@@ -293,6 +300,13 @@ test.describe('without a pointer (checklist 6)', () => {
     await page.keyboard.press('ArrowRight'); // step into it
     await page.keyboard.press('Enter');
     await expect(page.locator('.mw-doc h1')).toHaveText('Guide');
+
+    // Escape leaves the tree, so it has to be in the tree first. Opening a
+    // document reloads the page and the cursor is handed back once the rows
+    // arrive, which is after the heading appears.
+    await expect
+      .poll(() => page.evaluate(() => document.activeElement?.getAttribute('role')))
+      .toBe('tree');
 
     await page.keyboard.press('Escape');
     await expect(page.locator('main.mw-main')).toBeFocused();

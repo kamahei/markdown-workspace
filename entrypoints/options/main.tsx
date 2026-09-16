@@ -20,6 +20,8 @@ import { clearAll } from '../../src/platform/recent-folders';
 import '@ui/styles/theme.css';
 import '@ui/styles/app.css';
 import '@ui/styles/options.css';
+import { interpolate, t, type MessageKey } from '@ui/i18n';
+import { useBrowserTranslations } from '../../src/platform/i18n';
 
 /** Settings page (FR-26, FR-27, FR-31). */
 function Options({ initial }: { initial: Settings }) {
@@ -40,7 +42,9 @@ function Options({ initial }: { initial: Settings }) {
   const persist = useCallback((next: Settings) => {
     void send({ type: 'saveSettings', settings: next })
       .then((result) => {
-        setSaveError(result.saved ? null : (result.reason ?? 'Unknown error'));
+        setSaveError(
+          result.saved ? null : (result.reason ?? t('optionsSaveFailedUnknown')),
+        );
       })
       .catch((err: unknown) => {
         setSaveError(err instanceof Error ? err.message : String(err));
@@ -110,18 +114,14 @@ function Options({ initial }: { initial: Settings }) {
   return (
     <div class="mw-options">
       <header class="mw-options-header">
-        <h1>Markdown Workspace</h1>
-        <p>Settings are stored locally and never leave your device.</p>
+        <h1>{t('extName')}</h1>
+        <p>{t('optionsStorageNote')}</p>
       </header>
 
       {saveError ? (
         <section class="mw-options-section mw-options-alert" role="alert">
-          <h2>That setting was not saved</h2>
-          <p>
-            Chrome refused the write, so what you see here is not what will be used.
-            Chrome limits how much and how often an extension may store synced settings;
-            shortening the hidden folder list or removing an origin usually clears it.
-          </p>
+          <h2>{t('optionsSaveFailedTitle')}</h2>
+          <p>{t('optionsSaveFailedBody')}</p>
           <p class="mw-options-note">
             <code>{saveError}</code>
           </p>
@@ -130,11 +130,9 @@ function Options({ initial }: { initial: Settings }) {
 
       {fileAccess === false ? (
         <section class="mw-options-section mw-options-alert" role="alert">
-          <h2>Local files are blocked</h2>
+          <h2>{t('optionsFileAccessTitle')}</h2>
           <p>
-            Chrome requires you to enable file access yourself — an extension cannot do it
-            for you. Open <code>chrome://extensions</code>, find Markdown Workspace, click
-            Details, and enable &ldquo;Allow access to file URLs&rdquo;.
+            {interpolate(t('optionsFileAccessBody'), [<code>chrome://extensions</code>])}
           </p>
           <button
             type="button"
@@ -143,33 +141,33 @@ function Options({ initial }: { initial: Settings }) {
               void send({ type: 'checkFileAccess' }).then((r) => setFileAccess(r.granted))
             }
           >
-            Check again
+            {t('checkAgain')}
           </button>
         </section>
       ) : null}
 
       <section class="mw-options-section">
-        <h2>Appearance</h2>
+        <h2>{t('optionsAppearance')}</h2>
 
-        <Field label="Theme" hint="System follows your operating system setting.">
+        <Field label={t('optionsTheme')} hint={t('optionsThemeHint')}>
           <Select
             value={settings.theme}
             options={[
-              ['system', 'System'],
-              ['light', 'Light'],
-              ['dark', 'Dark'],
+              ['system', t('themeSystem')],
+              ['light', t('themeLight')],
+              ['dark', t('themeDark')],
             ]}
             onChange={(theme) => update({ theme: theme as ThemeMode })}
           />
         </Field>
 
-        <Field label="Content width" hint="How wide a line of text gets before wrapping.">
+        <Field label={t('optionsContentWidth')} hint={t('optionsContentWidthHint')}>
           <Select
             value={settings.contentWidth}
             options={[
-              ['narrow', 'Narrow'],
-              ['normal', 'Normal'],
-              ['wide', 'Wide'],
+              ['narrow', t('widthNarrow')],
+              ['normal', t('widthNormal')],
+              ['wide', t('widthWide')],
             ]}
             onChange={(width) => update({ contentWidth: width as ContentWidth })}
           />
@@ -177,26 +175,23 @@ function Options({ initial }: { initial: Settings }) {
       </section>
 
       <section class="mw-options-section">
-        <h2>Rendering</h2>
-        <p class="mw-options-note">
-          Each of these loads only when a document actually uses it, so turning one off
-          changes what is rendered, not what is downloaded.
-        </p>
+        <h2>{t('optionsRendering')}</h2>
+        <p class="mw-options-note">{t('optionsRenderingNote')}</p>
 
         <Toggle
-          label="Syntax highlighting"
+          label={t('optionsHighlight')}
           checked={settings.features.highlight}
           onChange={(highlight) =>
             update({ features: { ...settings.features, highlight } })
           }
         />
         <Toggle
-          label="Math (KaTeX)"
+          label={t('optionsMath')}
           checked={settings.features.math}
           onChange={(math) => update({ features: { ...settings.features, math } })}
         />
         <Toggle
-          label="Diagrams (Mermaid)"
+          label={t('optionsDiagrams')}
           checked={settings.features.diagrams}
           onChange={(diagrams) =>
             update({ features: { ...settings.features, diagrams } })
@@ -205,14 +200,14 @@ function Options({ initial }: { initial: Settings }) {
       </section>
 
       <section class="mw-options-section">
-        <h2>Markdown</h2>
+        <h2>{t('optionsMarkdown')}</h2>
 
-        <Field label="Flavour" hint="GFM adds tables, task lists and strikethrough.">
+        <Field label={t('optionsFlavour')} hint={t('optionsFlavourHint')}>
           <Select
             value={settings.markdown.preset}
             options={[
-              ['gfm', 'GitHub Flavored Markdown'],
-              ['commonmark', 'CommonMark only'],
+              ['gfm', t('flavourGfm')],
+              ['commonmark', t('flavourCommonmark')],
             ]}
             onChange={(preset) =>
               update({
@@ -223,41 +218,41 @@ function Options({ initial }: { initial: Settings }) {
         </Field>
 
         <Toggle
-          label="Turn bare URLs into links"
+          label={t('optionsLinkify')}
           checked={settings.markdown.linkify}
           onChange={(linkify) => update({ markdown: { ...settings.markdown, linkify } })}
         />
         <Toggle
-          label="Smart quotes and dashes"
+          label={t('optionsTypographer')}
           checked={settings.markdown.typographer}
           onChange={(typographer) =>
             update({ markdown: { ...settings.markdown, typographer } })
           }
         />
         <Toggle
-          label="Treat single newlines as line breaks"
+          label={t('optionsBreaks')}
           checked={settings.markdown.breaks}
           onChange={(breaks) => update({ markdown: { ...settings.markdown, breaks } })}
         />
       </section>
 
       <section class="mw-options-section">
-        <h2>File browser</h2>
+        <h2>{t('optionsFileBrowser')}</h2>
 
         <Toggle
-          label="Show hidden files and folders"
+          label={t('optionsShowHidden')}
           checked={settings.fileBrowser.showHiddenFiles}
           onChange={(showHiddenFiles) =>
             update({ fileBrowser: { ...settings.fileBrowser, showHiddenFiles } })
           }
         />
 
-        <Field label="Sort by">
+        <Field label={t('optionsSortBy')}>
           <Select
             value={settings.fileBrowser.sortBy}
             options={[
-              ['name', 'Name'],
-              ['modified', 'Last modified'],
+              ['name', t('sortByName')],
+              ['modified', t('sortByModified')],
             ]}
             onChange={(sortBy) =>
               update({
@@ -267,10 +262,7 @@ function Options({ initial }: { initial: Settings }) {
           />
         </Field>
 
-        <Field
-          label="Hidden folders"
-          hint="One per line. These are skipped in the tree; node_modules is why this exists."
-        >
+        <Field label={t('optionsHiddenFolders')} hint={t('optionsHiddenFoldersHint')}>
           <textarea
             class="mw-input mw-textarea"
             rows={5}
@@ -294,7 +286,7 @@ function Options({ initial }: { initial: Settings }) {
               })
             }
           >
-            Restore defaults
+            {t('optionsRestoreDefaults')}
           </button>
         </Field>
       </section>
@@ -304,11 +296,8 @@ function Options({ initial }: { initial: Settings }) {
       <ShortcutSection />
 
       <section class="mw-options-section mw-options-danger">
-        <h2>Reset</h2>
-        <p>
-          Clears every setting, all reading state, and the folders this extension
-          remembers — including the permission to reopen them.
-        </p>
+        <h2>{t('optionsReset')}</h2>
+        <p>{t('optionsResetBody')}</p>
         {confirmReset ? (
           <div class="mw-state-actions">
             <button
@@ -317,14 +306,14 @@ function Options({ initial }: { initial: Settings }) {
               disabled={resetting}
               onClick={() => void reset()}
             >
-              {resetting ? 'Resetting…' : 'Yes, reset everything'}
+              {resetting ? t('optionsResetting') : t('optionsResetConfirm')}
             </button>
             <button
               type="button"
               class="mw-btn mw-btn-secondary"
               onClick={() => setConfirmReset(false)}
             >
-              Cancel
+              {t('optionsCancel')}
             </button>
           </div>
         ) : (
@@ -333,7 +322,7 @@ function Options({ initial }: { initial: Settings }) {
             class="mw-btn mw-btn-secondary"
             onClick={() => setConfirmReset(true)}
           >
-            Reset all settings
+            {t('optionsResetButton')}
           </button>
         )}
       </section>
@@ -367,17 +356,19 @@ function ShortcutSection() {
 
   return (
     <section class="mw-options-section">
-      <h2>Keyboard shortcuts</h2>
+      <h2>{t('optionsShortcuts')}</h2>
       <p class="mw-options-note">
-        These are fixed. Chrome reserves combinations like{' '}
-        <kbd>{mac ? 'Cmd' : 'Ctrl'}</kbd>
-        <span class="mw-shortcut-sep">+</span>
-        <kbd>W</kbd> for itself and never delivers them to a page, so they are not offered
-        here.
+        {interpolate(t('optionsShortcutsNote'), [
+          <>
+            <kbd>{mac ? 'Cmd' : 'Ctrl'}</kbd>
+            <span class="mw-shortcut-sep">+</span>
+            <kbd>W</kbd>
+          </>,
+        ])}
       </p>
 
       <dl class="mw-shortcut-list">
-        {shortcuts.map(({ keys, description }) => (
+        {shortcuts.map(({ keys, descriptionKey }) => (
           <div key={keys} class="mw-shortcut-row">
             <dt>
               {splitKeys(keys).map((token, i) =>
@@ -390,7 +381,7 @@ function ShortcutSection() {
                 ),
               )}
             </dt>
-            <dd>{description}</dd>
+            <dd>{t(descriptionKey as MessageKey)}</dd>
           </div>
         ))}
       </dl>
@@ -457,16 +448,16 @@ function OriginSection({
         origins: [normalized.pattern],
       });
       if (!granted) {
-        setMessage('Chrome did not grant access to that site.');
+        setMessage(t('originNotGranted'));
         return;
       }
 
       const result = await send({ type: 'addOrigin', pattern: normalized.pattern });
       onChanged(result.settings);
       if (result.granted) setPattern('');
-      else setMessage('That site was allowed but could not be saved.');
+      else setMessage(t('originNotSaved'));
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : 'That origin could not be added.');
+      setMessage(err instanceof Error ? err.message : t('originNotAdded'));
     } finally {
       setBusy(false);
     }
@@ -479,18 +470,15 @@ function OriginSection({
 
   return (
     <section class="mw-options-section">
-      <h2>Websites</h2>
-      <p class="mw-options-note">
-        Markdown on the web is ignored unless you add its origin here. Nothing is enabled
-        by default, and each origin asks Chrome for permission separately.
-      </p>
+      <h2>{t('optionsWebsites')}</h2>
+      <p class="mw-options-note">{t('optionsWebsitesNote')}</p>
 
       <div class="mw-origin-add">
         <input
           type="text"
           class="mw-input"
-          placeholder="https://docs.example.com/*"
-          aria-label="Origin pattern"
+          placeholder={t('optionsOriginPlaceholder')}
+          aria-label={t('optionsOriginLabel')}
           value={pattern}
           disabled={busy}
           onInput={(e) => setPattern((e.target as HTMLInputElement).value)}
@@ -504,14 +492,14 @@ function OriginSection({
           disabled={busy || !pattern.trim()}
           onClick={() => void add()}
         >
-          Add
+          {t('optionsAdd')}
         </button>
       </div>
 
       {message ? <p class="mw-options-warning">{message}</p> : null}
 
       {settings.allowedOrigins.length === 0 ? (
-        <p class="mw-empty">No websites added.</p>
+        <p class="mw-empty">{t('optionsNoWebsites')}</p>
       ) : (
         <ul class="mw-origin-list">
           {settings.allowedOrigins.map((origin) => (
@@ -520,15 +508,15 @@ function OriginSection({
               {!origin.enabled ? (
                 <span
                   class="mw-origin-disabled"
-                  title="Chrome no longer grants this permission. Remove and add it again to restore it."
+                  title={t('optionsPermissionRevokedHint')}
                 >
-                  permission revoked
+                  {t('optionsPermissionRevoked')}
                 </span>
               ) : null}
               <button
                 type="button"
                 class="mw-btn"
-                aria-label={`Remove ${origin.pattern}`}
+                aria-label={t('optionsRemoveOrigin', [origin.pattern])}
                 onClick={() => void remove(origin.pattern)}
               >
                 ×
@@ -607,6 +595,10 @@ function Toggle({
 }
 
 async function main() {
+  // Before the first render: a label that paints in English and then
+  // swaps is worse than one that waits a tick.
+  useBrowserTranslations();
+
   let settings: Settings;
   try {
     settings = await send({ type: 'getSettings' });
@@ -616,7 +608,7 @@ async function main() {
 
   applyTheme(document.documentElement, settings.theme);
   applyContentWidth(document.documentElement, settings.contentWidth);
-  document.title = 'Markdown Workspace — Settings';
+  document.title = t('optionsTitle');
 
   render(<Options initial={settings} />, document.getElementById('app')!);
 }

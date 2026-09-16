@@ -19,10 +19,20 @@ export default defineConfig({
   },
 
   manifest: {
-    name: 'Markdown Workspace',
-    short_name: 'Markdown Workspace',
-    description:
-      'Read Markdown files and whole folders in Chrome, with a built-in file browser. Everything stays on your device.',
+    /*
+     * Name and description come from `_locales`, which
+     * `scripts/build-locales.mjs` generates from the catalogues in
+     * `src/ui/i18n/`. Chrome substitutes them per the browser's language.
+     *
+     * It is also what makes a second language possible in the store: the
+     * dashboard derives the languages a listing may be written in from the
+     * `_locales` folders in the uploaded package, so without this there is
+     * no Japanese tab to paste a Japanese listing into.
+     */
+    default_locale: 'en',
+    name: '__MSG_extName__',
+    short_name: '__MSG_extName__',
+    description: '__MSG_extDescription__',
 
     // Kept minimal on purpose. Remote origins are requested at runtime as
     // optional permissions; see .project/architecture.md "Permission Model".

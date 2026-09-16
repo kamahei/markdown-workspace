@@ -38,6 +38,19 @@ const EXTENSION_PATH = resolve('.output/chrome-mv3');
 const CHANNEL = process.env.MW_BROWSER_CHANNEL ?? 'chromium';
 
 /**
+ * The language the extension renders in.
+ *
+ * Pinned, because `chrome.i18n` follows the browser, the browser follows the
+ * operating system, and the suite asserts English strings. Left unpinned it
+ * passed on an English machine and failed on a Japanese one -- forty tests
+ * at once, for a product that was working correctly.
+ *
+ * `MW_UI_LANGUAGE=ja` runs the same suite in Japanese; only the tests that
+ * assert the translation should care.
+ */
+const UI_LANGUAGE = process.env.MW_UI_LANGUAGE ?? 'en-US';
+
+/**
  * Extensions only load in a persistent context, so these tests launch their own
  * browser rather than using Playwright's default fixtures.
  *
@@ -118,6 +131,7 @@ async function launchChromeOverCdp(userDataDir: string): Promise<Launched> {
   const child: ChildProcess = spawn(
     chromeExecutable(),
     [
+      `--lang=${UI_LANGUAGE}`,
       `--remote-debugging-port=${port}`,
       `--user-data-dir=${userDataDir}`,
       '--enable-unsafe-extension-debugging',
@@ -155,7 +169,9 @@ async function launchForChannel(userDataDir: string): Promise<Launched> {
 
   const context = await chromium.launchPersistentContext(userDataDir, {
     channel: CHANNEL,
+    locale: UI_LANGUAGE,
     args: [
+      `--lang=${UI_LANGUAGE}`,
       `--disable-extensions-except=${EXTENSION_PATH}`,
       `--load-extension=${EXTENSION_PATH}`,
       '--no-first-run',

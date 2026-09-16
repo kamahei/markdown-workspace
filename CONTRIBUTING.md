@@ -115,6 +115,30 @@ run:
   the answer at face value. Believing it skipped every `file://` test while
   reporting a pass.
 
+### Adding or changing a message
+
+Every string a user reads lives in `src/ui/i18n/en.ts`, with its translation
+in `ja.ts`. Add to both, then:
+
+```bash
+pnpm build:locales   # regenerates public/_locales/{en,ja}/messages.json
+```
+
+`pnpm build` does this for you. Three things keep the two in step:
+
+- `ja.ts` is typed against `en.ts`, so a key added to one and not the other
+  is a build error.
+- A test asserts the catalogues have the same keys, the same `$1`
+  substitutions, and that the generated `_locales` files are current.
+- The same test lists the handful of messages that are deliberately identical
+  in both languages — a product name, an address. Anything else being the
+  same means it was not translated.
+
+`src/core/` has no translator and should not get one: it takes plain inputs
+and returns plain outputs. Where core needs to show a string, the string is
+an input — see `EnrichMessages` — or core returns a message key and the UI
+looks it up, as `shortcutList()` does.
+
 ## Adding Dependencies
 
 Manifest V3 forbids loading remote code, so **every dependency is bundled into

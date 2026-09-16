@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
+import { t } from '../i18n';
 
 export type DropState = 'idle' | 'valid' | 'invalid' | 'loading';
 
@@ -59,7 +60,7 @@ export function DropZone({ children, onDrop, accepts }: DropZoneProps) {
       }
 
       setState('loading');
-      setLabel('Reading folder…');
+      setLabel(t('readingFolder'));
       try {
         const ok = await onDrop(dataTransfer);
         setState(ok ? 'idle' : 'invalid');
@@ -84,8 +85,8 @@ export function DropZone({ children, onDrop, accepts }: DropZoneProps) {
       {state !== 'idle' ? (
         <div class={`mw-drop-overlay is-${state}`} role="status" aria-live="polite">
           <div class="mw-drop-message">
-            {state === 'valid' ? 'Drop to open this folder' : null}
-            {state === 'invalid' ? 'Only folders and Markdown files can be opened' : null}
+            {state === 'valid' ? t('dropToOpenFolder') : null}
+            {state === 'invalid' ? t('dropUnsupported') : null}
             {state === 'loading' ? label : null}
           </div>
         </div>

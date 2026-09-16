@@ -18,6 +18,7 @@ import { loadScrollRatio, saveScrollRatio } from '../platform/document-state';
 import './styles/theme.css';
 import './styles/app.css';
 import './styles/document.css';
+import { useBrowserTranslations } from '../platform/i18n';
 
 /**
  * Composition root for reader mode: wires the platform adapters to the pure
@@ -76,6 +77,10 @@ export async function mountReader(options: {
   page: PageInfo;
   source: string;
 }): Promise<void> {
+  // Before the first render: a label that paints in English and then
+  // swaps is worse than one that waits a tick.
+  useBrowserTranslations();
+
   const settings = await loadSettings();
   applyChrome(settings);
 

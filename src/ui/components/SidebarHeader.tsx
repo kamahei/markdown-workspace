@@ -1,4 +1,5 @@
 import { basename, dirname } from '@core/fs/types';
+import { t } from '../i18n';
 
 interface SidebarHeaderProps {
   /** Directory the tree is rooted at. */
@@ -27,7 +28,7 @@ export function SidebarHeader({ root, onNavigateUp, children }: SidebarHeaderPro
         <button
           type="button"
           class="mw-btn mw-sidebar-up"
-          title={`Open the parent folder: ${parent}`}
+          title={t('openParentFolder', [parent])}
           aria-label={`Open the parent folder: ${parent}`}
           onClick={() => onNavigateUp?.(parent.endsWith('/') ? parent : `${parent}/`)}
         >

@@ -22,6 +22,7 @@ import { useSettingsSync } from './hooks/useSettingsSync';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useScrollMemory } from './hooks/useScrollMemory';
 import { useTreeFocusHandoff } from './hooks/useTreeFocusHandoff';
+import { t, themeKey } from './i18n';
 
 interface ReaderAppProps {
   page: PageInfo;
@@ -171,7 +172,7 @@ export function ReaderApp({
   return (
     <div class="mw-root">
       <a class="mw-skip-link" href="#mw-main">
-        Skip to content
+        {t('skipToContent')}
       </a>
 
       <Toolbar
@@ -179,23 +180,23 @@ export function ReaderApp({
           <>
             <ToolbarButton
               icon="raw"
-              label={raw ? 'Show rendered document' : 'Show Markdown source'}
+              label={raw ? t('showRenderedDocument') : t('showMarkdownSource')}
               pressed={raw}
               onClick={() => setRaw((v) => !v)}
             />
             <ToolbarButton
               icon="reload"
-              label="Reload"
+              label={t('reload')}
               onClick={() => doc.location.reload()}
             />
             <ToolbarButton
               icon="theme"
-              label={`Theme: ${settings.theme}`}
+              label={t('themeIs', [t(themeKey(settings.theme))])}
               onClick={cycleTheme}
             />
             <ToolbarButton
               icon="workspace"
-              label="Open in Workspace"
+              label={t('openInWorkspace')}
               onClick={() => onOpenWorkspace(doc.location.href)}
             />
           </>
@@ -203,18 +204,18 @@ export function ReaderApp({
       >
         <ToolbarButton
           icon="sidebar"
-          label="Toggle sidebar"
+          label={t('toggleSidebar')}
           pressed={sidebarVisible}
           onClick={() => setSidebarVisible((v) => !v)}
         />
         <Breadcrumb
           directory={page.directory ?? ''}
-          name={basename(documentPath) || 'Document'}
+          name={basename(documentPath) || t('untitledDocument')}
         />
       </Toolbar>
 
       <div class="mw-body">
-        <nav class="mw-sidebar" hidden={!sidebarVisible} aria-label="Files">
+        <nav class="mw-sidebar" hidden={!sidebarVisible} aria-label={t('filesNav')}>
           <SidebarHeader root={treeRoot ?? ''} onNavigateUp={openFolder} />
           {fileSource ? (
             <FileTree
@@ -227,7 +228,7 @@ export function ReaderApp({
               onFilterChange={tree.setFilter}
             />
           ) : (
-            <p class="mw-empty">This folder could not be read.</p>
+            <p class="mw-empty">{t('folderCouldNotBeRead')}</p>
           )}
         </nav>
 

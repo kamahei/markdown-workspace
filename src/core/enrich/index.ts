@@ -49,10 +49,29 @@ export interface EnrichmentLoaders {
   diagram?: () => Promise<DiagramRenderer>;
 }
 
+/**
+ * The few strings enrichment puts in front of a reader.
+ *
+ * Injected for the same reason the loaders are: core takes plain inputs and
+ * returns plain outputs, and it has no business knowing which language the
+ * browser is in. `$1` is substituted where noted.
+ */
+export interface EnrichMessages {
+  diagramFailed: string;
+  expressionFailed: string;
+  /** `$1` is the kind of diagram, e.g. "flowchart". */
+  diagramLabel: string;
+  /** Used when the renderer does not say what kind it is. */
+  diagramFallbackLabel: string;
+  /** `$1` is the diagram source. */
+  diagramSourceIntro: string;
+}
+
 export interface EnrichOptions {
   theme: Theme;
   sanitizer: Sanitizer;
   features: { highlight: boolean; math: boolean; diagrams: boolean };
+  messages: EnrichMessages;
   /** Aborts work when the document is replaced mid-flight. */
   signal?: { aborted: boolean };
 }
@@ -204,7 +223,7 @@ async function runMath(
         // The original source stays put; discarding the author's content
         // because it has a typo would be the worse failure (FR-6).
         setState(el, 'error');
-        el.setAttribute('title', error ?? 'Could not render this expression');
+        el.setAttribute('title', error ?? options.messages.expressionFailed);
         report.failures += 1;
         continue;
       }
@@ -251,7 +270,7 @@ async function runDiagrams(
         // Falls back to the source block already in the DOM, with the reason
         // attached (FR-7).
         setState(el, 'error');
-        showError(el, error ?? 'Could not render this diagram');
+        showError(el, error ?? options.messages.diagramFailed);
         report.failures += 1;
         continue;
       }
@@ -259,13 +278,13 @@ async function runDiagrams(
       const holder = el.ownerDocument.createElement('div');
       // Diagram SVG keeps its embedded <style>; see Sanitizer.sanitizeDiagram.
       holder.innerHTML = options.sanitizer.sanitizeDiagram(svg);
-      describeDiagram(holder, item.id, item.source);
+      describeDiagram(holder, item.id, item.source, options.messages);
       el.insertBefore(holder, el.firstChild);
       setState(el, 'done');
       report.diagrams += 1;
     } catch {
       setState(el, 'error');
-      showError(el, 'Could not render this diagram');
+      showError(el, options.messages.diagramFailed);
       report.failures += 1;
     }
   }
@@ -292,7 +311,12 @@ async function runDiagrams(
  * instead -- Mermaid turns those into `<title>` and `<desc>`, and a real
  * description beats a generated one every time.
  */
-function describeDiagram(holder: Element, id: string, source: string): void {
+function describeDiagram(
+  holder: Element,
+  id: string,
+  source: string,
+  messages: EnrichMessages,
+): void {
   const svg = holder.querySelector('svg');
   if (!svg) return;
 
@@ -320,7 +344,10 @@ function describeDiagram(holder: Element, id: string, source: string): void {
     return;
   }
 
-  svg.setAttribute('aria-label', kind ? `${kind} diagram` : 'Diagram');
+  svg.setAttribute(
+    'aria-label',
+    kind ? messages.diagramLabel.replace('$1', kind) : messages.diagramFallbackLabel,
+  );
 
   // The source, for a reader to fall back on. Off-screen rather than
   // `hidden`: hidden content is not announced at all, and the point is that
@@ -328,7 +355,7 @@ function describeDiagram(holder: Element, id: string, source: string): void {
   const description = holder.ownerDocument.createElement('div');
   description.id = `${id}-source`;
   description.className = 'mw-visually-hidden';
-  description.textContent = `Diagram source. ${source}`;
+  description.textContent = messages.diagramSourceIntro.replace('$1', source);
   holder.appendChild(description);
   svg.setAttribute('aria-describedby', description.id);
 }
