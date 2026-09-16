@@ -140,8 +140,22 @@ export function createSanitizer(
   });
 
   const config = {
+    /*
+     * `file:` and `blob:` join the default schemes because documents link
+     * across a local folder, and neither lets a document supply bytes of its
+     * own -- a blob URL can only name data the page already created.
+     *
+     * `data:` is deliberately absent and granted through ADD_DATA_URI_TAGS
+     * instead, which confines it to `<img>`. Allowed everywhere, it let a
+     * document carry `<a href="data:application/x-msdownload;base64,...">`:
+     * a one-click download of arbitrary attacker-supplied bytes, dressed in
+     * the credibility of a rendered page. Embedded images are the only
+     * legitimate use, and images loaded from the folder never come through
+     * here -- their src is assigned after sanitizing.
+     */
     ALLOWED_URI_REGEXP:
-      /^(?:(?:https?|mailto|tel|file|blob|data):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
+      /^(?:(?:https?|mailto|tel|file|blob):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
+    ADD_DATA_URI_TAGS: ['img'],
     ADD_ATTR: [
       ...ENRICHMENT_ATTRS,
       ...RENDERER_ATTRS,

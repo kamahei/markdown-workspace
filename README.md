@@ -143,3 +143,18 @@ layout, and pull request process.
 ## License
 
 [MIT](LICENSE) © 2026 Kamahei
+
+### Bundled third-party software
+
+Manifest V3 forbids loading remote code, so every rendering library ships
+inside the extension package. Each remains under its own license:
+
+| Library                                                               | License                                                                         |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| [markdown-it](https://github.com/markdown-it/markdown-it) and plugins | MIT, except `markdown-it-anchor` (Unlicense) and `markdown-it-task-lists` (ISC) |
+| [DOMPurify](https://github.com/cure53/DOMPurify)                      | MPL-2.0 or Apache-2.0                                                           |
+| [Shiki](https://shiki.style/)                                         | MIT                                                                             |
+| [KaTeX](https://katex.org/)                                           | MIT                                                                             |
+| [Mermaid](https://mermaid.js.org/)                                    | MIT                                                                             |
+| [Preact](https://preactjs.com/)                                       | MIT                                                                             |
+| [js-yaml](https://github.com/nodeca/js-yaml)                          | MIT                                                                             |
