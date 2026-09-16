@@ -77,6 +77,27 @@ export default defineConfig({
     ],
   },
 
+  /*
+   * The sources archive WXT builds for Firefox review takes the working
+   * directory, not `git ls-files` -- so it swept up `AGENTS.md`, which is
+   * gitignored precisely so it never reaches GitHub, and attached it to a
+   * release. Caught while the release was still a draft.
+   *
+   * `.project/` happened not to be included, but it is named here anyway: a
+   * rule that holds by accident is not a rule.
+   */
+  zip: {
+    excludeSources: [
+      'AGENTS.md',
+      '.project/**',
+      // Generated store images. Not secret, just not source.
+      'store-assets/**',
+      'test-results/**',
+      'playwright-report/**',
+      'coverage/**',
+    ],
+  },
+
   vite: () => ({
     plugins: [preact()],
     build: {
