@@ -7,18 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-
-- Japanese throughout. The interface follows the browser's language, and the
-  extension's name and description do too. Messages live in one typed
-  catalogue per language, so the compiler catches a key that exists in one
-  and not the other.
-
-  This is also what makes a Japanese store listing possible: the Chrome Web
-  Store derives the languages a listing may be written in from the `_locales`
-  folders in the uploaded package, so an extension that is not localized gets
-  one language tab and no way to add another.
-
 ## [0.1.0] - 2026-09-16
 
 First release. Built from source or from the archive attached to this tag;
@@ -44,6 +32,10 @@ the Chrome Web Store listing is not live yet.
 - Settings changes reach open documents without a reload.
 - Japanese, Chinese and Korean text renders without the spurious space a
   wrapped line would otherwise gain.
+- English and Japanese. The interface follows the browser's language, and so
+  do the extension's name and description. Messages live in one typed
+  catalogue per language, so a key added to one and forgotten in the other is
+  a build error rather than a string that quietly falls back.
 - Keyboard navigation throughout: the file tree follows the ARIA tree pattern,
   a dropped folder starts with the list focused, and opening a document keeps
   the cursor there even though reader mode loads a new page each time. The
