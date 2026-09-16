@@ -95,6 +95,26 @@ answered — by running it, rather than by assuming a shared engine means
 shared behaviour. Firefox is not covered this way: Playwright cannot load an
 extension into it, so `pnpm build:firefox` still has to be checked by hand.
 
+**`=chrome` takes a different route, and it matters if you touch the
+fixtures.** Google Chrome stable no longer honours `--load-extension`; it
+launches and the extension simply is not there. The supported replacement is
+the CDP `Extensions.loadUnpacked` command, which Playwright's own launcher
+cannot reach — it refuses `--remote-debugging-pipe`, and the browser session
+it hands out has no browser context attached. So for that channel the fixture
+starts Chrome itself, attaches with `connectOverCDP`, and installs the
+extension over CDP. Set `MW_CHROME_PATH` if Chrome is somewhere unusual.
+
+Two things surprised us there and are worth knowing before you trust a green
+run:
+
+- A real Chrome profile runs service workers of its own, so the extension is
+  found **by name** rather than by being first in `serviceWorkers()`.
+- `chrome.extension.isAllowedFileSchemeAccess()` reports `false` in that mode
+  while the content script demonstrably runs on `file://`. The `hasFileAccess`
+  fixture therefore opens a real Markdown file and looks, instead of taking
+  the answer at face value. Believing it skipped every `file://` test while
+  reporting a pass.
+
 ## Adding Dependencies
 
 Manifest V3 forbids loading remote code, so **every dependency is bundled into
