@@ -6,6 +6,7 @@ import { pickDirectoryIndex } from '@core/link';
 import { applyContentWidth, applyTheme, nextTheme, type Settings } from '@core/settings';
 import { Breadcrumb, Toolbar, ToolbarButton } from './components/Toolbar';
 import { FileTree } from './components/FileTree';
+import { SidebarHeader } from './components/SidebarHeader';
 import { FileAccessPanel, ErrorPanel } from './components/States';
 import { useFileTree } from './hooks/useFileTree';
 import { useSettingsSync } from './hooks/useSettingsSync';
@@ -122,11 +123,12 @@ export function DirectoryApp({
 
       <div class="mw-body">
         <nav class="mw-sidebar" aria-label="Files">
-          <div class="mw-sidebar-header">
-            <span class="mw-sidebar-title" title={directory}>
-              {basename(directory) || '/'}
-            </span>
-          </div>
+          <SidebarHeader
+            root={directory}
+            onNavigateUp={(parent) => {
+              doc.location.href = `${pathToFileUrl(parent.replace(/\/+$/, ''))}/`;
+            }}
+          />
           {fileSource ? (
             <FileTree
               state={tree.state}

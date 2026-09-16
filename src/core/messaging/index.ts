@@ -68,6 +68,16 @@ export interface OpenWorkspaceRequest {
   target?: string;
 }
 
+export interface GetWorkspaceRootRequest {
+  type: 'getWorkspaceRoot';
+}
+
+export interface SetWorkspaceRootRequest {
+  type: 'setWorkspaceRoot';
+  /** Directory the user opened, or null to forget it. */
+  root: string | null;
+}
+
 export interface GetSettingsRequest {
   type: 'getSettings';
 }
@@ -91,6 +101,8 @@ export type Request =
   | ReadFileRequest
   | ListDirectoryRequest
   | CheckFileAccessRequest
+  | GetWorkspaceRootRequest
+  | SetWorkspaceRootRequest
   | OpenWorkspaceRequest
   | GetSettingsRequest
   | SaveSettingsRequest
@@ -103,6 +115,8 @@ export interface ResponseMap {
   readFile: Result<FileContentPayload>;
   listDirectory: Result<DirectoryEntryPayload[]>;
   checkFileAccess: { granted: boolean };
+  getWorkspaceRoot: { root: string | null };
+  setWorkspaceRoot: { saved: boolean };
   openWorkspace: { opened: boolean };
   getSettings: Settings;
   saveSettings: { saved: boolean };

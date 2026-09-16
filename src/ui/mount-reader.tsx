@@ -1,5 +1,5 @@
 import { render } from 'preact';
-import type { PageInfo } from '@core/reader/classify';
+import { resolveTreeRoot, type PageInfo } from '@core/reader/classify';
 import { splitFrontMatter } from '@core/markdown';
 import {
   applyContentWidth,
@@ -84,10 +84,25 @@ export async function mountReader(options: {
   if (title) document.title = title;
   applyLanguage(splitFrontMatter(options.source).frontMatter.data);
 
+  // Root the tree at the folder the user opened, not at this document's own
+  // directory. Each navigation is a fresh page load, so without the
+  // remembered root the sidebar walks downwards as they read and the parent
+  // folder becomes unreachable.
+  const remembered = await send({ type: 'getWorkspaceRoot' })
+    .then((r) => r.root)
+    .catch(() => null);
+  const treeRoot = resolveTreeRoot(options.page.directory, remembered);
+
+  // Opening a document outside the remembered folder means they moved
+  // somewhere else; that becomes the new root.
+  if (treeRoot && treeRoot !== remembered) {
+    void send({ type: 'setWorkspaceRoot', root: treeRoot });
+  }
+
   // The sidebar is best-effort: a document must still render when its folder
   // cannot be listed.
-  const fileSource: FileSource | null = options.page.directory
-    ? new FileUrlSource(fileUrlTransport, options.page.directory)
+  const fileSource: FileSource | null = treeRoot
+    ? new FileUrlSource(fileUrlTransport, treeRoot)
     : null;
 
   render(
@@ -97,6 +112,7 @@ export async function mountReader(options: {
       initialSettings={settings}
       doc={document}
       fileSource={fileSource}
+      treeRoot={treeRoot}
       onSaveSettings={persist}
       onOpenWorkspace={openWorkspace}
       loadScroll={loadScrollRatio}
@@ -113,6 +129,11 @@ export async function mountDirectory(options: { page: PageInfo }): Promise<void>
   applyLanguage(null);
 
   const directory = options.page.directory ?? '/';
+
+  // Opening a folder is what sets the root for this tab; every document
+  // opened from here keeps it.
+  void send({ type: 'setWorkspaceRoot', root: directory });
+
   const source = new FileUrlSource(fileUrlTransport, directory);
 
   // Probe once up front so the page can show the permission panel rather than

@@ -15,6 +15,7 @@ import { pathToFileUrl } from '@core/fs/file-url-source';
 import { Breadcrumb, Toolbar, ToolbarButton } from './components/Toolbar';
 import { DocumentView } from './components/DocumentView';
 import { FileTree } from './components/FileTree';
+import { SidebarHeader } from './components/SidebarHeader';
 import { useFileTree } from './hooks/useFileTree';
 import { useEnrichment } from './hooks/useEnrichment';
 import { useSettingsSync } from './hooks/useSettingsSync';
@@ -28,6 +29,8 @@ interface ReaderAppProps {
   doc: Document;
   /** Backs the sidebar. Null when the folder could not be read. */
   fileSource: FileSource | null;
+  /** Folder the sidebar is rooted at, which is not always this document's. */
+  treeRoot: string | null;
   /**
    * Extension side effects arrive as callbacks so this component stays
    * testable without a browser. The composition root wires them to the
@@ -46,6 +49,7 @@ export function ReaderApp({
   initialSettings,
   doc,
   fileSource,
+  treeRoot,
   onSaveSettings,
   onOpenWorkspace,
   loadScroll,
@@ -69,7 +73,7 @@ export function ReaderApp({
 
   const enrichment = useEnrichment(sanitizer, settings, doc);
 
-  const tree = useFileTree(fileSource, page.directory);
+  const tree = useFileTree(fileSource, treeRoot);
   const { reveal } = tree;
 
   // Restored only once the document is rendered, so scrollHeight is real.
@@ -99,6 +103,14 @@ export function ReaderApp({
   const openPath = useCallback(
     (path: string, fragment?: string | null) => {
       doc.location.href = pathToFileUrl(path) + (fragment ? `#${fragment}` : '');
+    },
+    [doc],
+  );
+
+  /** Opening a folder navigates to its listing, which re-roots this tab. */
+  const openFolder = useCallback(
+    (directory: string) => {
+      doc.location.href = `${pathToFileUrl(directory.replace(/\/+$/, ''))}/`;
     },
     [doc],
   );
@@ -159,11 +171,7 @@ export function ReaderApp({
 
       <div class="mw-body">
         <nav class="mw-sidebar" hidden={!sidebarVisible} aria-label="Files">
-          <div class="mw-sidebar-header">
-            <span class="mw-sidebar-title" title={page.directory ?? ''}>
-              {basename(page.directory ?? '') || '/'}
-            </span>
-          </div>
+          <SidebarHeader root={treeRoot ?? ''} onNavigateUp={openFolder} />
           {fileSource ? (
             <FileTree
               state={tree.state}

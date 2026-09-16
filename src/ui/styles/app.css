@@ -646,3 +646,14 @@
 .mw-recent-forget:hover {
   color: var(--mw-danger);
 }
+
+/* Up-one-level control in the sidebar header. */
+.mw-sidebar-up {
+  flex: 0 0 auto;
+  width: 22px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1;
+}

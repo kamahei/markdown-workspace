@@ -116,3 +116,56 @@ export function extractPlainTextSource(doc: Document): string | null {
 
   return null;
 }
+
+/**
+ * Decides where the sidebar tree should be rooted.
+ *
+ * Reader mode navigates by loading a new `file://` page, so every document
+ * arrives with no memory of how the user got there. Rooting the tree at the
+ * document's own directory therefore walks the root downwards as they read:
+ * open `samples/docs/reference/shortcuts.md` from a tree rooted at
+ * `samples/` and the sidebar re-roots at `reference/`, stranding them two
+ * levels down with no way back to the folder they opened.
+ *
+ * The folder the user actually opened is remembered per tab and passed back
+ * in here. It wins as long as the document is inside it; a document outside
+ * it means they navigated somewhere else entirely, and its own directory is
+ * then the honest answer.
+ */
+export function resolveTreeRoot(
+  documentDirectory: string | null,
+  rememberedRoot: string | null,
+): string | null {
+  if (!rememberedRoot) return documentDirectory;
+  if (!documentDirectory) return rememberedRoot;
+
+  return isInside(documentDirectory, rememberedRoot) ? rememberedRoot : documentDirectory;
+}
+
+/** True when `path` is `root` or sits beneath it. */
+export function isInside(path: string, root: string): boolean {
+  const normalizedRoot = root.endsWith('/') ? root : `${root}/`;
+  const normalizedPath = path.endsWith('/') ? path : `${path}/`;
+  return normalizedPath === normalizedRoot || normalizedPath.startsWith(normalizedRoot);
+}
+
+/**
+ * The ancestor chain from the filesystem root down to `directory`.
+ *
+ * Drives the clickable breadcrumb, which is the escape hatch for the other
+ * half of the problem: a document opened directly, with no remembered folder
+ * to return to.
+ */
+export function ancestorDirectories(
+  directory: string,
+): Array<{ name: string; path: string }> {
+  const segments = directory.split('/').filter(Boolean);
+  const out: Array<{ name: string; path: string }> = [];
+
+  let current = '';
+  for (const segment of segments) {
+    current = `${current}/${segment}`;
+    out.push({ name: segment, path: `${current}/` });
+  }
+  return out;
+}

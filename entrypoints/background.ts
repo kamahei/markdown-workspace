@@ -293,7 +293,51 @@ async function handleRemoveOrigin(pattern: string) {
   return { removed: true, settings: updated };
 }
 
-async function handle(request: Request): Promise<unknown> {
+// --- Per-tab workspace root ------------------------------------------------
+
+/**
+ * Remembers which folder each tab has open.
+ *
+ * Reader mode navigates by loading a new file:// page, so a document has no
+ * memory of how the user reached it. Without this the sidebar re-roots at
+ * each document's own directory and walks downwards as they read, stranding
+ * them with no way back to the folder they opened.
+ *
+ * Keyed by tab, because two tabs can legitimately have different folders
+ * open. Stored in session storage, so it lasts as long as the browsing
+ * session and no longer -- a remembered folder is not worth persisting to
+ * disk.
+ */
+const rootKey = (tabId: number) => `workspaceRoot:${tabId}`;
+
+async function getWorkspaceRoot(tabId: number | undefined): Promise<string | null> {
+  if (tabId == null) return null;
+  try {
+    const stored = await browser.storage.session.get(rootKey(tabId));
+    const value = stored[rootKey(tabId)];
+    return typeof value === 'string' ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+async function setWorkspaceRoot(
+  tabId: number | undefined,
+  root: string | null,
+): Promise<void> {
+  if (tabId == null) return;
+  try {
+    if (root === null) await browser.storage.session.remove(rootKey(tabId));
+    else await browser.storage.session.set({ [rootKey(tabId)]: root });
+  } catch {
+    // Losing the remembered folder costs a re-rooted sidebar, not the page.
+  }
+}
+
+async function handle(
+  request: Request,
+  sender: { tab?: { id?: number } },
+): Promise<unknown> {
   switch (request.type) {
     case 'readFile':
       return readFile(request.url, request.binary ?? false);
@@ -301,6 +345,11 @@ async function handle(request: Request): Promise<unknown> {
       return listDirectory(request.url);
     case 'checkFileAccess':
       return { granted: await hasFileAccess() };
+    case 'getWorkspaceRoot':
+      return { root: await getWorkspaceRoot(sender.tab?.id) };
+    case 'setWorkspaceRoot':
+      await setWorkspaceRoot(sender.tab?.id, request.root);
+      return { saved: true };
     case 'openWorkspace':
       return openWorkspace(request.target);
     case 'getSettings':
@@ -318,10 +367,10 @@ async function handle(request: Request): Promise<unknown> {
 }
 
 export default defineBackground(() => {
-  browser.runtime.onMessage.addListener((message: Request, _sender, sendResponse) => {
+  browser.runtime.onMessage.addListener((message: Request, sender, sendResponse) => {
     if (!message || typeof message.type !== 'string') return false;
 
-    handle(message)
+    handle(message, sender)
       .then(sendResponse)
       .catch((err: unknown) => {
         sendResponse(
@@ -368,6 +417,10 @@ export default defineBackground(() => {
         documentUrlPatterns: ['file:///*'],
       });
     });
+  });
+
+  browser.tabs.onRemoved.addListener((tabId) => {
+    void setWorkspaceRoot(tabId, null);
   });
 
   browser.contextMenus.onClicked.addListener((info) => {
