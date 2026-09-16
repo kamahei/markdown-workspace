@@ -6,6 +6,30 @@ import {
   type TreeState,
 } from '@core/fs/tree';
 import { FileSourceError, type FileSource } from '@core/fs/types';
+import type { FileErrorCode } from '@core/messaging';
+import { t } from '@ui/i18n';
+
+/**
+ * Why a folder would not open, in the reader's language.
+ *
+ * Translated from the error's `code` rather than from its `message`. The
+ * message is written in `src/core/`, which has no translator by design, so
+ * rendering it put an English sentence in the tooltip and in the screen
+ * reader's ear on a Japanese interface.
+ */
+function describeFileError(err: unknown): string {
+  const code: FileErrorCode | null = err instanceof FileSourceError ? err.code : null;
+  switch (code) {
+    case 'file-access-denied':
+      return t('localFilesBlocked');
+    case 'not-found':
+      return t('folderNoLongerThere');
+    case 'unparseable-listing':
+      return t('folderListingUnreadable');
+    default:
+      return t('folderCouldNotBeRead');
+  }
+}
 
 /**
  * Drives a TreeState against a FileSource.
@@ -72,8 +96,7 @@ export function useFileTree(source: FileSource | null, root: string | null) {
           if (run !== generation.current) return;
           // One unreadable directory must not take the tree down; the row
           // keeps its place with the reason attached.
-          const message =
-            err instanceof FileSourceError ? err.message : 'Could not read this folder';
+          const message = describeFileError(err);
           setState((prev) => {
             const loading = new Set(prev.loading);
             loading.delete(path);

@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { globSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { en } from '@ui/i18n/en';
 import { ja } from '@ui/i18n/ja';
@@ -140,5 +140,37 @@ describe('themeKey', () => {
     ['system', 'themeSystem'],
   ] as const)('%s maps to %s', (theme, key) => {
     expect(themeKey(theme)).toBe(key);
+  });
+});
+
+describe('nothing user-facing escapes the catalogue', () => {
+  /**
+   * `src/core/` has no translator by design, so the prose in a
+   * `FileSourceError` is English whatever the interface language is. Rendering
+   * one put an English sentence in the workspace's alert panel and in the
+   * sidebar's tooltip on a Japanese interface -- both shipped that way, and
+   * both were found by reading rather than by a failing test.
+   *
+   * The UI translates from the error's `code` instead. `ErrorPanel` is the one
+   * place that renders a message, and its callers hand it a translated one.
+   */
+  const uiSources = () =>
+    globSync('src/ui/**/*.{ts,tsx}').map(
+      (file) => [file, readFileSync(file, 'utf8')] as const,
+    );
+
+  it('never renders an error’s own message outside the panel that takes one', () => {
+    const offenders = uiSources()
+      .filter(([file]) => !file.endsWith('States.tsx'))
+      .filter(([, source]) => /\b(err|error)\.message\b/.test(source))
+      .map(([file]) => file);
+
+    expect(offenders).toEqual([]);
+  });
+
+  it('keeps that panel’s one message render, so the rule above means something', () => {
+    // If this fails the exemption above is stale and should go, not be moved.
+    const panel = readFileSync('src/ui/components/States.tsx', 'utf8');
+    expect(panel).toContain('{error.message}');
   });
 });

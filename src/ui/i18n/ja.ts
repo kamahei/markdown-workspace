@@ -43,6 +43,9 @@ export const ja: Record<keyof typeof en, string> = {
 
   // --- Reader and directory views ---------------------------------------
   folderCouldNotBeRead: 'このフォルダを読み取れませんでした。',
+  localFilesBlocked: 'Chrome がローカルファイルへのアクセスをブロックしています。',
+  folderNoLongerThere: 'このフォルダはすでに存在しません。',
+  fileNoLongerThere: 'このファイルはすでに存在しません。',
   folderCouldNotBeOpened: 'このフォルダを開けませんでした。',
   folderListingUnreadable:
     'このフォルダ一覧を読み取れませんでした。ワークスペースから開いてみてください。',

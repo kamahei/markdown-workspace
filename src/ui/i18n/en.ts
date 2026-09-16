@@ -49,6 +49,9 @@ export const en = {
 
   // --- Reader and directory views ---------------------------------------
   folderCouldNotBeRead: 'This folder could not be read.',
+  localFilesBlocked: 'Chrome is blocking access to local files.',
+  folderNoLongerThere: 'This folder is no longer there.',
+  fileNoLongerThere: 'This file is no longer there.',
   folderCouldNotBeOpened: 'This folder could not be opened.',
   folderListingUnreadable:
     'This folder listing could not be read. Try opening the folder in the workspace instead.',

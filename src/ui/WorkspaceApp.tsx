@@ -10,7 +10,7 @@ import {
 } from '@core/settings';
 import { basename, FileSourceError, type FileSource } from '@core/fs/types';
 import { pickDirectoryIndex } from '@core/link';
-import type { FileError } from '@core/messaging';
+import type { FileError, FileErrorCode } from '@core/messaging';
 import { Toolbar, ToolbarButton } from './components/Toolbar';
 import { DocumentView } from './components/DocumentView';
 import { FileTree } from './components/FileTree';
@@ -52,6 +52,23 @@ export interface WorkspaceAppProps {
   /** Reading position, persisted per document (FR-30). */
   loadScroll: (path: string) => Promise<number>;
   saveScroll: (path: string, ratio: number) => void;
+}
+
+/**
+ * Why a document would not open, in the reader's language.
+ *
+ * Worded for a file rather than for a folder; the sidebar has its own
+ * mapping, because "no longer there" needs a different noun in each place.
+ */
+function describeOpenFailure(code: FileErrorCode): string {
+  switch (code) {
+    case 'file-access-denied':
+      return t('localFilesBlocked');
+    case 'not-found':
+      return t('fileNoLongerThere');
+    default:
+      return t('documentCouldNotBeOpened');
+  }
 }
 
 export function WorkspaceApp({
@@ -134,9 +151,12 @@ export function WorkspaceApp({
         setActiveId(path);
         reveal(path);
       } catch (err) {
+        // Translated from the code, not from the error's own message: that
+        // one is written in `src/core/`, which has no translator by design,
+        // and it was reaching the alert panel as English prose.
         setError(
           err instanceof FileSourceError
-            ? { code: err.code, message: err.message }
+            ? { code: err.code, message: describeOpenFailure(err.code) }
             : { code: 'unknown', message: t('documentCouldNotBeOpened') },
         );
       } finally {

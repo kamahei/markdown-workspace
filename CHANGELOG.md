@@ -59,6 +59,14 @@ the Chrome Web Store listing is not live yet.
   not at WCAG AA.
 - Automated checks report no WCAG 2.1 AA violations on any surface.
 
+### Fixed
+
+- Two failure messages reached the screen in English on a Japanese interface:
+  the reason a folder would not open, shown in the sidebar's tooltip and to a
+  screen reader, and the workspace's panel for a document that would not open.
+  Both are now translated from the error's code rather than from prose written
+  in a layer that has no translator.
+
 ### Reliability
 
 - Reloading or updating the extension no longer raises "Extension context
