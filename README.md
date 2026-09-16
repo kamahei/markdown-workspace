@@ -43,6 +43,8 @@ like a small static site, with no build step and nothing uploaded anywhere.
 - **Themes** — light, dark and system-following themes for reading comfort.
 - **CJK-aware** — Japanese, Chinese and Korean text renders without the
   spurious space a wrapped line would otherwise gain mid-sentence.
+- **English and Japanese** — the interface, the extension's name and its
+  description all follow the browser's language.
 - **Opt-in remote rendering** — Markdown served over `http(s)` renders only for
   origins you explicitly add in the options page. Nothing is enabled by default.
 - **Usable without a mouse** — arrow through the file tree, <kbd>Enter</kbd> to
