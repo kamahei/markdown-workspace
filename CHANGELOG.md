@@ -61,6 +61,10 @@ the Chrome Web Store listing is not live yet.
 
 ### Fixed
 
+- The privacy policy described per-document storage that did not exist. What
+  is stored is where you had scrolled to and when you last opened the document,
+  and now that is what it says. The unused field behind the discrepancy is gone
+  from the record too.
 - Two failure messages reached the screen in English on a Japanese interface:
   the reason a folder would not open, shown in the sidebar's tooltip and to a
   screen reader, and the workspace's panel for a document that would not open.

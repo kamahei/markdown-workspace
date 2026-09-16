@@ -16,8 +16,6 @@ export interface DocumentState {
   /** 0..1 through the scrollable height. */
   scrollRatio: number;
   lastOpenedAt: number;
-  /** Heading anchor ids the reader collapsed. */
-  collapsedSections: string[];
 }
 
 export const DOC_STATE_PREFIX = 'docState:';
@@ -53,7 +51,7 @@ export function documentStateKey(path: string): string {
 }
 
 export function defaultDocumentState(): DocumentState {
-  return { scrollRatio: 0, lastOpenedAt: 0, collapsedSections: [] };
+  return { scrollRatio: 0, lastOpenedAt: 0 };
 }
 
 /** Coerces stored data into a usable state, falling back field by field. */
@@ -73,9 +71,6 @@ export function normalizeDocumentState(value: unknown): DocumentState {
       typeof record.lastOpenedAt === 'number' && Number.isFinite(record.lastOpenedAt)
         ? record.lastOpenedAt
         : base.lastOpenedAt,
-    collapsedSections: Array.isArray(record.collapsedSections)
-      ? record.collapsedSections.filter((s): s is string => typeof s === 'string')
-      : base.collapsedSections,
   };
 }
 

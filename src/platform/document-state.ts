@@ -25,7 +25,6 @@ export function saveScrollRatio(path: string, scrollRatio: number): void {
   const state: DocumentState = {
     scrollRatio,
     lastOpenedAt: Date.now(),
-    collapsedSections: [],
   };
   // Guarded rather than caught: after the extension reloads, `browser
   // .storage` is undefined, so reading `.local` throws before there is a
