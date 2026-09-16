@@ -20,9 +20,11 @@ test.describe('translation', () => {
     // one language tab in the dashboard and no way to add another, whatever
     // copy has been prepared.
     const locales = await serviceWorker.evaluate(async () => {
+      // Root-relative, not chrome.runtime.getURL: the worker already runs
+      // on the extension origin, and WXT types getURL against the files in
+      // public/, which _locales is generated into rather than committed.
       const read = async (lang: string) => {
-        const url = chrome.runtime.getURL(`_locales/${lang}/messages.json`);
-        const res = await fetch(url);
+        const res = await fetch(`/_locales/${lang}/messages.json`);
         return res.ok ? ((await res.json()) as Record<string, unknown>) : null;
       };
       return {
@@ -66,11 +68,9 @@ test.describe('translation', () => {
      * and is covered by running the suite with MW_UI_LANGUAGE=ja.
      */
     const japanese = await serviceWorker.evaluate(async () => {
-      const url = chrome.runtime.getURL('_locales/ja/messages.json');
-      const catalogue = (await (await fetch(url)).json()) as Record<
-        string,
-        { message: string }
-      >;
+      const catalogue = (await (
+        await fetch('/_locales/ja/messages.json')
+      ).json()) as Record<string, { message: string }>;
       return {
         appearance: catalogue.optionsAppearance?.message,
         skip: catalogue.skipToContent?.message,

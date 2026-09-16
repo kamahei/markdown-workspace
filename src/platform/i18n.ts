@@ -14,7 +14,11 @@ import { fromCatalogue, setTranslator, type Translate } from '@ui/i18n';
 export function useBrowserTranslations(): void {
   const translate: Translate = (key, substitutions) => {
     try {
-      const message = browser.i18n.getMessage(key, substitutions);
+      // The overloads take a string or an array, never undefined, so the
+      // no-substitution case has to be a separate call.
+      const message = substitutions
+        ? browser.i18n.getMessage(key, substitutions)
+        : browser.i18n.getMessage(key);
       return message === '' ? fromCatalogue(key, substitutions) : message;
     } catch {
       return fromCatalogue(key, substitutions);
