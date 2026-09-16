@@ -72,9 +72,16 @@ const loaded = new Set<string>();
 async function getHighlighter(): Promise<HighlighterCore> {
   if (highlighter) return highlighter;
 
+  /*
+   * The high-contrast variants, because the ordinary ones do not meet
+   * WCAG AA. `github-light` paints some tokens in #E36209, which axe
+   * reports as a serious contrast violation against the code background --
+   * found only once a document with real code was audited, since the
+   * existing sample was `const a = 1;` and never produced that token.
+   */
   const [light, dark] = await Promise.all([
-    import('shiki/themes/github-light.mjs'),
-    import('shiki/themes/github-dark.mjs'),
+    import('shiki/themes/github-light-high-contrast.mjs'),
+    import('shiki/themes/github-dark-high-contrast.mjs'),
   ]);
 
   highlighter = await createHighlighterCore({
@@ -118,6 +125,9 @@ export async function highlight(request: HighlightRequest): Promise<string | nul
 
   return shiki.codeToHtml(request.code, {
     lang,
-    theme: request.theme === 'dark' ? 'github-dark' : 'github-light',
+    theme:
+      request.theme === 'dark'
+        ? 'github-dark-high-contrast'
+        : 'github-light-high-contrast',
   });
 }

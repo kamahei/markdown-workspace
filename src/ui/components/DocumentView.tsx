@@ -251,5 +251,33 @@ function wrapTables(root: HTMLElement): void {
     wrapper.className = 'mw-table-scroll';
     table.replaceWith(wrapper);
     wrapper.appendChild(table);
+    trackScrollability(wrapper);
   }
+}
+
+/**
+ * Makes a table's scroller reachable by keyboard, but only while it scrolls.
+ *
+ * A region that scrolls and cannot be focused cannot be scrolled without a
+ * pointer, which axe reports as a serious WCAG 2.1.1 violation and which is
+ * exactly true: a wide table was simply cut off for a keyboard user.
+ *
+ * Conditional on purpose. Making every table a tab stop would add one for
+ * each table in a document, most of which fit and have nothing to scroll.
+ * Whether it overflows depends on the window, so it is re-measured when the
+ * window changes rather than decided once.
+ */
+function trackScrollability(wrapper: HTMLElement): void {
+  const view = wrapper.ownerDocument.defaultView;
+
+  const update = () => {
+    const scrolls = wrapper.scrollWidth > wrapper.clientWidth + 1;
+    if (scrolls) wrapper.setAttribute('tabindex', '0');
+    else wrapper.removeAttribute('tabindex');
+  };
+
+  update();
+  if (!view?.ResizeObserver) return;
+  const observer = new view.ResizeObserver(update);
+  observer.observe(wrapper);
 }

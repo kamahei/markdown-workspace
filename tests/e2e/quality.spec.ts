@@ -1,4 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
+import { resolve } from 'node:path';
 import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 
@@ -74,6 +75,76 @@ test.describe('accessibility (NFR-7)', () => {
 
     const results = await audit(page);
     expect(results.violations, describeViolations(results)).toEqual([]);
+  });
+
+  test('a document with real code, maths and a diagram has no violations', async ({
+    context,
+    fileUrl,
+    hasFileAccess,
+  }) => {
+    test.skip(!hasFileAccess, 'needs file:// access');
+
+    /*
+     * The synthetic document above audits clean, and did so while two
+     * serious violations were live. Its code sample was `const a = 1;`,
+     * which never produces the token colour that fails contrast, and its
+     * table was two columns wide so nothing scrolled.
+     *
+     * This audits the sample tour instead -- real code, real maths, a real
+     * Mermaid diagram -- because a fixture chosen to be small is a fixture
+     * chosen to be easy.
+     */
+    const page = await context.newPage();
+    await page.goto(fileUrl(resolve('samples/docs/code-and-diagrams.md')));
+    await expect(page.locator('.mw-doc h1')).toBeVisible();
+    await page.waitForSelector('pre.shiki', { timeout: 25_000 }).catch(() => {});
+    await page.waitForSelector('.mw-diagram svg', { timeout: 25_000 }).catch(() => {});
+
+    const results = await audit(page);
+    expect(results.violations, describeViolations(results)).toEqual([]);
+  });
+
+  test('a table too wide for the window can be scrolled without a pointer', async ({
+    context,
+    makeTree,
+    fileUrl,
+    hasFileAccess,
+  }) => {
+    test.skip(!hasFileAccess, 'needs file:// access');
+
+    // A scroller that cannot take focus cannot be scrolled from the
+    // keyboard, so the rest of the table is simply unreachable.
+    const columns = 14;
+    const row = (cell: (i: number) => string) =>
+      `| ${Array.from({ length: columns }, (_, i) => cell(i)).join(' | ')} |`;
+    const root = await makeTree({
+      'wide.md': [
+        '# Wide',
+        '',
+        row((i) => `Column heading ${i}`),
+        row(() => '---'),
+        row((i) => `value ${i}`),
+        '',
+      ].join(String.fromCharCode(10)),
+      'narrow.md': ['# Narrow', '', '| A | B |', '| - | - |', '| 1 | 2 |', ''].join(
+        String.fromCharCode(10),
+      ),
+    });
+
+    const page = await context.newPage();
+    await page.setViewportSize({ width: 500, height: 720 });
+    await page.goto(fileUrl(`${root}/wide.md`));
+    await expect(page.locator('.mw-doc h1')).toBeVisible();
+
+    const scroller = page.locator('.mw-table-scroll');
+    await expect(scroller).toHaveAttribute('tabindex', '0');
+    const results = await audit(page);
+    expect(results.violations, describeViolations(results)).toEqual([]);
+
+    // And a table that fits does not become a tab stop for nothing.
+    await page.goto(fileUrl(`${root}/narrow.md`));
+    await expect(page.locator('.mw-doc h1')).toBeVisible();
+    await expect(page.locator('.mw-table-scroll')).not.toHaveAttribute('tabindex', '0');
   });
 
   test('the whole reader is reachable by keyboard alone', async ({
