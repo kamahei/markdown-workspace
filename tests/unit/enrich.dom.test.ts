@@ -318,3 +318,80 @@ describe('markPending', () => {
     expect(states).toEqual(['pending', 'pending', 'pending']);
   });
 });
+
+/**
+ * A diagram is one object, not a pile of labels.
+ *
+ * Mermaid ships its SVG with `role="graphics-document document"`, which
+ * invites a screen reader to walk inside, and every node and edge label is a
+ * `<text>`. The sample flowchart came out as "A .md file, A folder, Drop a
+ * folder on Chrome, What is it?" -- the edge labels first, then the nodes.
+ * Not merely noisy: the order is not the order of the flow.
+ */
+describe('enrichDocument — diagrams reach assistive technology (NFR-7)', () => {
+  const mermaidShaped = (svg: string): EnrichmentLoaders =>
+    fakeLoaders({
+      diagram: async () => ({
+        async render() {
+          return { svg, error: null };
+        },
+      }),
+    });
+
+  const plainSvg =
+    '<svg viewBox="0 0 10 10" role="graphics-document document" ' +
+    'aria-roledescription="flowchart-v2"><text>B</text><text>A</text></svg>';
+
+  it('presents the diagram as a single image', async () => {
+    const { root, result } = mount('```mermaid\ngraph TD\n  A-->B\n```\n');
+    await enrichDocument(root, result.enrichments, mermaidShaped(plainSvg), {
+      theme: 'light',
+      sanitizer,
+      features: ALL_FEATURES,
+    });
+
+    const svg = root.querySelector('svg')!;
+    expect(svg.getAttribute('role')).toBe('img');
+    // Mermaid's own value here is its internal renderer name.
+    expect(svg.getAttribute('aria-roledescription')).toBeNull();
+    expect(svg.getAttribute('aria-label')).toBe('flowchart diagram');
+  });
+
+  it('offers the source as the alternative, since that is the structure', async () => {
+    const { root, result } = mount('```mermaid\ngraph TD\n  A-->B\n```\n');
+    await enrichDocument(root, result.enrichments, mermaidShaped(plainSvg), {
+      theme: 'light',
+      sanitizer,
+      features: ALL_FEATURES,
+    });
+
+    const svg = root.querySelector('svg')!;
+    const described = root.querySelector(`#${svg.getAttribute('aria-describedby')}`);
+    expect(described).not.toBeNull();
+    // The labels alone lose which node leads to which. The source does not.
+    expect(described!.textContent).toContain('A-->B');
+  });
+
+  it('prefers a description the author wrote', async () => {
+    // Mermaid turns accTitle and accDescr into <title> and <desc>. A real
+    // description beats a generated one, so it is used as-is.
+    const authored =
+      '<svg viewBox="0 0 10 10" role="graphics-document document">' +
+      '<title>How a drop is handled</title>' +
+      '<desc>A folder opens the tree; a file renders.</desc><text>A</text></svg>';
+    const { root, result } = mount('```mermaid\ngraph TD\n  A-->B\n```\n');
+    await enrichDocument(root, result.enrichments, mermaidShaped(authored), {
+      theme: 'light',
+      sanitizer,
+      features: ALL_FEATURES,
+    });
+
+    const svg = root.querySelector('svg')!;
+    expect(svg.getAttribute('role')).toBe('img');
+    expect(svg.getAttribute('aria-label')).toBeNull();
+    const title = root.querySelector(`#${svg.getAttribute('aria-labelledby')}`);
+    expect(title?.textContent).toBe('How a drop is handled');
+    const desc = root.querySelector(`#${svg.getAttribute('aria-describedby')}`);
+    expect(desc?.textContent).toContain('A folder opens the tree');
+  });
+});

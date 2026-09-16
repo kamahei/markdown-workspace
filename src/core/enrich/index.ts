@@ -259,6 +259,7 @@ async function runDiagrams(
       const holder = el.ownerDocument.createElement('div');
       // Diagram SVG keeps its embedded <style>; see Sanitizer.sanitizeDiagram.
       holder.innerHTML = options.sanitizer.sanitizeDiagram(svg);
+      describeDiagram(holder, item.id, item.source);
       el.insertBefore(holder, el.firstChild);
       setState(el, 'done');
       report.diagrams += 1;
@@ -268,6 +269,68 @@ async function runDiagrams(
       report.failures += 1;
     }
   }
+}
+
+/**
+ * Gives a diagram one identity instead of a pile of loose labels.
+ *
+ * Mermaid ships its SVG with `role="graphics-document document"`, which
+ * invites a screen reader to walk inside, and every node and edge label is a
+ * `<text>` element. A reader then reads all of them in document order --
+ * which for a flowchart is not the order of the flow. The sample diagram
+ * came out as "A .md file, A folder, Drop a folder on Chrome, What is it?"
+ * : the edge labels first, then the nodes. Not merely noisy, actively
+ * misleading.
+ *
+ * So the SVG becomes a single `img`, and the alternative offered is the
+ * diagram's own source. That is the honest substitute: for Mermaid the
+ * source *is* a description of the graph, and it says which node leads to
+ * which, which is exactly what the picture conveys and the labels alone
+ * destroy.
+ *
+ * An author who writes `accTitle:` and `accDescr:` gets what they wrote
+ * instead -- Mermaid turns those into `<title>` and `<desc>`, and a real
+ * description beats a generated one every time.
+ */
+function describeDiagram(holder: Element, id: string, source: string): void {
+  const svg = holder.querySelector('svg');
+  if (!svg) return;
+
+  const authored = svg.querySelector('title, desc');
+
+  // One object, not a document to explore. `aria-roledescription` otherwise
+  // announces Mermaid's internal name for the renderer, e.g. "flowchart-v2".
+  svg.setAttribute('role', 'img');
+  const kind = (svg.getAttribute('aria-roledescription') ?? '').replace(/-v\d+$/, '');
+  svg.removeAttribute('aria-roledescription');
+
+  if (authored) {
+    // Point at it explicitly: a <title> deep in the SVG is not reliably
+    // taken as the accessible name once the role changes.
+    const titleEl = svg.querySelector('title');
+    if (titleEl) {
+      if (!titleEl.id) titleEl.id = `${id}-title`;
+      svg.setAttribute('aria-labelledby', titleEl.id);
+    }
+    const descEl = svg.querySelector('desc');
+    if (descEl) {
+      if (!descEl.id) descEl.id = `${id}-desc`;
+      svg.setAttribute('aria-describedby', descEl.id);
+    }
+    return;
+  }
+
+  svg.setAttribute('aria-label', kind ? `${kind} diagram` : 'Diagram');
+
+  // The source, for a reader to fall back on. Off-screen rather than
+  // `hidden`: hidden content is not announced at all, and the point is that
+  // it should be available to ask for.
+  const description = holder.ownerDocument.createElement('div');
+  description.id = `${id}-source`;
+  description.className = 'mw-visually-hidden';
+  description.textContent = `Diagram source. ${source}`;
+  holder.appendChild(description);
+  svg.setAttribute('aria-describedby', description.id);
 }
 
 /** Marks every placeholder as awaiting enrichment, before phase two starts. */

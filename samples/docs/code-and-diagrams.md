@@ -51,6 +51,8 @@ because of a typo would be the worse failure.
 
 ```mermaid
 graph TD
+    accTitle: How a drop is handled
+    accDescr: A folder opens the file tree; a Markdown file renders. Either way the sidebar then shows the siblings, and links between documents navigate in place.
     A[Drop a folder on Chrome] --> B{What is it?}
     B -->|A .md file| C[Render it]
     B -->|A folder| D[Show the file tree]
@@ -73,3 +75,10 @@ sequenceDiagram
 
 A diagram that will not parse falls back to showing its source with the error,
 and the rest of the document is untouched.
+
+The first diagram carries `accTitle` and `accDescr`. A screen reader announces
+a diagram as one image rather than reading its labels one by one — the labels
+alone arrive in document order, which for a flowchart is not the order of the
+flow. Without those two lines the diagram's own source is offered instead,
+which does at least say which node leads to which. A sentence you wrote is
+better.
