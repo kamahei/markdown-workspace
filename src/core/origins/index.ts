@@ -3,14 +3,18 @@ import type { OriginRule, Settings } from '../settings';
 /**
  * Opt-in remote origins (FR-22..FR-25, .project/decision-log.md D5).
  *
- * Pure policy: validating a pattern, reconciling stored intent against what
- * Chrome actually granted, and shaping the network rules. The calls to
- * `chrome.permissions`, `declarativeNetRequest` and `chrome.scripting` live in
- * the background entrypoint.
+ * Pure policy: validating a pattern, and reconciling stored intent against
+ * what Chrome actually granted. The calls to `chrome.permissions` and
+ * `chrome.scripting` live in the background entrypoint.
+ *
+ * There was a `declarativeNetRequest` rule builder here too, rewriting
+ * `Content-Type: text/markdown` to `text/plain` so Chrome would display the
+ * response instead of downloading it. Measured on Chrome 153, Edge 153 and
+ * both Chromium builds Playwright ships, browsers display a Markdown content
+ * type already -- so the rule fired only where nothing was wrong, and its own
+ * condition excluded the cases that do download. It was removed along with
+ * the permission it needed (Q14).
  */
-
-/** Content types that make Chrome download Markdown instead of showing it. */
-export const MARKDOWN_CONTENT_TYPES = ['text/markdown', 'text/x-markdown'];
 
 export interface PatternResult {
   ok: boolean;
@@ -127,65 +131,4 @@ export function activePatterns(settings: Settings): string[] {
   return settings.allowedOrigins
     .filter((rule) => rule.enabled)
     .map((rule) => rule.pattern);
-}
-
-export interface HeaderRule {
-  id: number;
-  priority: number;
-  action: {
-    type: 'modifyHeaders';
-    responseHeaders: Array<{ header: string; operation: 'set'; value: string }>;
-  };
-  condition: {
-    urlFilter: string;
-    resourceTypes: ['main_frame'];
-    responseHeaders?: Array<{ header: string; values: string[] }>;
-  };
-}
-
-/** Rule ids are ours to own; keeping them in one range makes cleanup exact. */
-export const RULE_ID_BASE = 1000;
-
-/**
- * Builds the rules that stop Chrome downloading Markdown (FR-24).
- *
- * A server sending `Content-Type: text/markdown` makes Chrome download the
- * file, so no page exists and no content script runs. Rewriting the header to
- * `text/plain` restores the situation the reader already handles.
- *
- * **This rule currently does nothing.** It fires only when the response
- * already carries a Markdown content type, and browsers display those as text
- * pages rather than downloading them -- measured on Chrome 153, Edge 153 and
- * both Chromium builds Playwright ships. The responses that do download,
- * `application/octet-stream` and anything with `Content-Disposition:
- * attachment`, are excluded by this rule's own condition. Remote rendering
- * works because the content script is registered for the approved origin.
- * Open question Q14 holds the decision: drop the permission, widen the rule,
- * or keep it as insurance for older Chrome and stop claiming anything for it.
- *
- * Scoped to `main_frame` only: this must never touch a subresource a page
- * fetches for its own purposes.
- */
-export function buildHeaderRules(patterns: string[]): HeaderRule[] {
-  return patterns.map((pattern, index) => ({
-    id: RULE_ID_BASE + index,
-    priority: 1,
-    action: {
-      type: 'modifyHeaders' as const,
-      responseHeaders: [
-        {
-          header: 'content-type',
-          operation: 'set' as const,
-          value: 'text/plain; charset=utf-8',
-        },
-      ],
-    },
-    condition: {
-      urlFilter: pattern,
-      resourceTypes: ['main_frame'] as ['main_frame'],
-      // Only rewrite when the server really did send a Markdown type; an
-      // unconditional rewrite would break every HTML page on the origin.
-      responseHeaders: [{ header: 'content-type', values: MARKDOWN_CONTENT_TYPES }],
-    },
-  }));
 }

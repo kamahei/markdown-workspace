@@ -236,21 +236,20 @@ test.describe('remote Markdown (FR-24, architecture C5, Q14)', () => {
     expect(await page.evaluate(() => document.contentType)).toMatch(/markdown/);
   });
 
-  test('builds a header rule scoped to the origin and the main frame', async ({
+  test('declares what remote rendering actually needs, and no more', async ({
     context,
     extensionId,
   }) => {
-    // The permission prompt cannot be driven from Playwright, so the rule
-    // shape is asserted directly. The prompt itself is on the manual list.
+    // Remote rendering works by registering the reader on an approved origin,
+    // which needs `scripting` and a host permission requested at runtime.
+    // `declarativeNetRequest` was declared too, for a header rewrite that
+    // turned out to have nothing to do (Q14); this pins that it stays gone.
     const page = await context.newPage();
     await page.goto(`chrome-extension://${extensionId}/options.html`);
 
-    // The rule shapes themselves are covered by the buildHeaderRules unit
-    // tests; this asserts the extension declares the APIs needed to apply
-    // them, and nothing broader.
     const manifest = await page.evaluate(() => chrome.runtime.getManifest());
-    expect(manifest.permissions).toContain('declarativeNetRequest');
     expect(manifest.permissions).toContain('scripting');
+    expect(manifest.permissions).not.toContain('declarativeNetRequest');
     expect(manifest.optional_host_permissions).toEqual(
       expect.arrayContaining(['http://*/*', 'https://*/*']),
     );
@@ -305,12 +304,7 @@ test.describe('remote Markdown (FR-24, architecture C5, Q14)', () => {
     // no test noticed because the suite navigates to options.html directly.
     const manifest = await serviceWorker.evaluate(() => chrome.runtime.getManifest());
     expect(manifest.options_ui?.open_in_tab).toBe(true);
-    expect(manifest.permissions).toEqual([
-      'storage',
-      'contextMenus',
-      'declarativeNetRequest',
-      'scripting',
-    ]);
+    expect(manifest.permissions).toEqual(['storage', 'contextMenus', 'scripting']);
   });
 
   test('documents every permission it declares', async ({ serviceWorker }) => {

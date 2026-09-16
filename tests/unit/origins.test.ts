@@ -2,13 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   activePatterns,
   addOrigin,
-  buildHeaderRules,
   hasOrigin,
-  MARKDOWN_CONTENT_TYPES,
   normalizePattern,
   reconcileOrigins,
   removeOrigin,
-  RULE_ID_BASE,
 } from '@core/origins';
 import { defaultSettings, type Settings } from '@core/settings';
 
@@ -167,47 +164,5 @@ describe('activePatterns', () => {
 
   it('is empty by default (FR-22)', () => {
     expect(activePatterns(defaultSettings())).toEqual([]);
-  });
-});
-
-describe('buildHeaderRules (FR-24)', () => {
-  it('builds no rules for no patterns', () => {
-    expect(buildHeaderRules([])).toEqual([]);
-  });
-
-  it('rewrites the content type to text/plain', () => {
-    const [rule] = buildHeaderRules(['https://a.test/*']);
-    expect(rule!.action.type).toBe('modifyHeaders');
-    expect(rule!.action.responseHeaders[0]).toMatchObject({
-      header: 'content-type',
-      operation: 'set',
-    });
-    expect(rule!.action.responseHeaders[0]!.value).toContain('text/plain');
-  });
-
-  it('fires only when the server actually sent a Markdown type', () => {
-    // An unconditional rewrite would turn every HTML page on the origin into
-    // plain text, which would be a spectacular way to break a site.
-    const [rule] = buildHeaderRules(['https://a.test/*']);
-    expect(rule!.condition.responseHeaders?.[0]!.values).toEqual(MARKDOWN_CONTENT_TYPES);
-  });
-
-  it('applies to the main frame only', () => {
-    // A subresource the page fetches for its own purposes is none of our
-    // business.
-    const [rule] = buildHeaderRules(['https://a.test/*']);
-    expect(rule!.condition.resourceTypes).toEqual(['main_frame']);
-  });
-
-  it('gives each rule a distinct id in our reserved range', () => {
-    const rules = buildHeaderRules(['https://a.test/*', 'https://b.test/*']);
-    expect(rules.map((r) => r.id)).toEqual([RULE_ID_BASE, RULE_ID_BASE + 1]);
-    expect(new Set(rules.map((r) => r.id)).size).toBe(2);
-  });
-
-  it('scopes each rule to its own origin', () => {
-    const rules = buildHeaderRules(['https://a.test/*', 'https://b.test/*']);
-    expect(rules[0]!.condition.urlFilter).toBe('https://a.test/*');
-    expect(rules[1]!.condition.urlFilter).toBe('https://b.test/*');
   });
 });

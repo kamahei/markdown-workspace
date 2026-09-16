@@ -13,11 +13,9 @@ import { pruneDocumentState } from '../src/platform/document-state';
 import {
   activePatterns,
   addOrigin,
-  buildHeaderRules,
   normalizePattern,
   reconcileOrigins,
   removeOrigin,
-  RULE_ID_BASE,
 } from '@core/origins';
 
 /**
@@ -221,18 +219,6 @@ async function grantedPatterns(settings: Settings): Promise<string[]> {
  */
 async function applyOriginEffects(settings: Settings): Promise<void> {
   const patterns = activePatterns(settings);
-
-  try {
-    const existing = await browser.declarativeNetRequest.getDynamicRules();
-    await browser.declarativeNetRequest.updateDynamicRules({
-      removeRuleIds: existing
-        .filter((rule) => rule.id >= RULE_ID_BASE)
-        .map((rule) => rule.id),
-      addRules: buildHeaderRules(patterns) as never,
-    });
-  } catch (err) {
-    console.error('[Markdown Workspace] Could not update network rules', err);
-  }
 
   try {
     const registered = await browser.scripting.getRegisteredContentScripts({

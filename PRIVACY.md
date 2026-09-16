@@ -50,14 +50,13 @@ settings** in the options page.
 
 ## Permissions Explained
 
-| Permission                | Why it is needed                                                                                                                                        |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `storage`                 | Save your settings and reading state locally                                                                                                            |
-| `file:///*`               | Read the local Markdown files and folders you open                                                                                                      |
-| `declarativeNetRequest`   | Adjust response headers on origins you have added, so a server that offers Markdown as a download can still be read. Never used until you add an origin |
-| `contextMenus`            | Provide the right-click entry that opens a file in the workspace                                                                                        |
-| `scripting`               | Register the rendering script on origins you have explicitly approved; unused until you add one                                                         |
-| Optional host permissions | Requested only when you add a specific origin for remote Markdown rendering                                                                             |
+| Permission                | Why it is needed                                                                                |
+| ------------------------- | ----------------------------------------------------------------------------------------------- |
+| `storage`                 | Save your settings and reading state locally                                                    |
+| `file:///*`               | Read the local Markdown files and folders you open                                              |
+| `contextMenus`            | Provide the right-click entry that opens a file in the workspace                                |
+| `scripting`               | Register the rendering script on origins you have explicitly approved; unused until you add one |
+| Optional host permissions | Requested only when you add a specific origin for remote Markdown rendering                     |
 
 ## Changes
 

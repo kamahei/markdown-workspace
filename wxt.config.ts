@@ -26,7 +26,14 @@ export default defineConfig({
 
     // Kept minimal on purpose. Remote origins are requested at runtime as
     // optional permissions; see .project/architecture.md "Permission Model".
-    permissions: ['storage', 'contextMenus', 'declarativeNetRequest', 'scripting'],
+    //
+    // `declarativeNetRequest` was here to rewrite `Content-Type: text/markdown`
+    // to `text/plain`, on the belief that browsers download a Markdown type
+    // rather than displaying it. Measured on Chrome 153, Edge 153 and both
+    // Chromium builds Playwright ships, they display it, so the rule never had
+    // anything to do. Removed rather than kept as insurance: a permission
+    // nobody can justify is one a reviewer has to take on trust (Q14).
+    permissions: ['storage', 'contextMenus', 'scripting'],
 
     host_permissions: ['file:///*'],
 
