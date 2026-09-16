@@ -11,7 +11,7 @@ import { FileUrlSource } from '@core/fs/file-url-source';
 import type { FileSource } from '@core/fs/types';
 import { ReaderApp } from './ReaderApp';
 import { DirectoryApp } from './DirectoryApp';
-import { send } from '../platform/messaging';
+import { post, send } from '../platform/messaging';
 import { fileUrlTransport } from '../platform/file-url-transport';
 import { loadScrollRatio, saveScrollRatio } from '../platform/document-state';
 
@@ -70,8 +70,8 @@ function applyChrome(settings: Settings): void {
   applyContentWidth(document.documentElement, settings.contentWidth);
 }
 
-const openWorkspace = (target: string) => void send({ type: 'openWorkspace', target });
-const persist = (settings: Settings) => void send({ type: 'saveSettings', settings });
+const openWorkspace = (target: string) => post({ type: 'openWorkspace', target });
+const persist = (settings: Settings) => post({ type: 'saveSettings', settings });
 
 export async function mountReader(options: {
   page: PageInfo;
@@ -101,7 +101,7 @@ export async function mountReader(options: {
   // Opening a document outside the remembered folder means they moved
   // somewhere else; that becomes the new root.
   if (treeRoot && treeRoot !== remembered) {
-    void send({ type: 'setWorkspaceRoot', root: treeRoot });
+    post({ type: 'setWorkspaceRoot', root: treeRoot });
   }
 
   // The sidebar is best-effort: a document must still render when its folder
@@ -137,7 +137,7 @@ export async function mountDirectory(options: { page: PageInfo }): Promise<void>
 
   // Opening a folder is what sets the root for this tab; every document
   // opened from here keeps it.
-  void send({ type: 'setWorkspaceRoot', root: directory });
+  post({ type: 'setWorkspaceRoot', root: directory });
 
   const source = new FileUrlSource(fileUrlTransport, directory);
 
@@ -164,9 +164,13 @@ export async function mountDirectory(options: { page: PageInfo }): Promise<void>
       onSaveSettings={persist}
       onOpenWorkspace={openWorkspace}
       onRecheckAccess={() => {
-        void send({ type: 'checkFileAccess' }).then((result) => {
-          if (result.granted) location.reload();
-        });
+        void send({ type: 'checkFileAccess' })
+          .then((result) => {
+            if (result.granted) location.reload();
+          })
+          .catch(() => {
+            // The extension went away; the button simply does nothing.
+          });
       }}
     />,
     host,

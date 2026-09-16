@@ -59,6 +59,14 @@ the Chrome Web Store listing is not live yet.
   not at WCAG AA.
 - Automated checks report no WCAG 2.1 AA violations on any surface.
 
+### Reliability
+
+- Reloading or updating the extension no longer raises "Extension context
+  invalidated" in documents that were already open. Such a page keeps its
+  rendered document and stops trying to reach an extension that is no longer
+  there; reloading the page brings the sidebar, the settings and the reading
+  position back.
+
 ### Security
 
 - All rendered HTML passes through a single sanitization boundary, including

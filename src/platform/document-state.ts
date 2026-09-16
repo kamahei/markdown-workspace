@@ -5,6 +5,7 @@ import {
   DOC_STATE_PREFIX,
   type DocumentState,
 } from '@core/settings';
+import { guard, guardAsync } from './extension-context';
 
 /**
  * Reading state, stored locally per document (FR-30).
@@ -14,13 +15,9 @@ import {
  */
 
 export async function loadScrollRatio(path: string): Promise<number> {
-  try {
-    const key = documentStateKey(path);
-    const stored = await browser.storage.local.get(key);
-    return normalizeDocumentState(stored[key]).scrollRatio;
-  } catch {
-    return 0;
-  }
+  const key = documentStateKey(path);
+  const stored = await guardAsync(() => browser.storage.local.get(key), {});
+  return normalizeDocumentState(stored[key]).scrollRatio;
 }
 
 export function saveScrollRatio(path: string, scrollRatio: number): void {
@@ -30,7 +27,13 @@ export function saveScrollRatio(path: string, scrollRatio: number): void {
     lastOpenedAt: Date.now(),
     collapsedSections: [],
   };
-  void browser.storage.local.set({ [key]: state }).catch(() => {});
+  // Guarded rather than caught: after the extension reloads, `browser
+  // .storage` is undefined, so reading `.local` throws before there is a
+  // promise for `.catch` to attach to.
+  guard(
+    () => void browser.storage.local.set({ [key]: state }).catch(() => {}),
+    undefined,
+  );
 }
 
 /**
