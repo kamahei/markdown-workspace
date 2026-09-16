@@ -354,9 +354,11 @@
   outline: none;
 }
 
+/* The row draws the cursor; an outline on the container as well would
+   double up and obscure which row is current. */
+.mw-tree:focus,
 .mw-tree:focus-visible {
-  outline: 2px solid var(--mw-focus);
-  outline-offset: -2px;
+  outline: none;
 }
 
 .mw-tree-row {
@@ -390,9 +392,28 @@
   color: var(--mw-fg);
 }
 
-/* Roving tabindex: the tree owns focus, so the focused row is marked here. */
-.mw-tree-row.is-focused {
-  box-shadow: inset 2px 0 0 var(--mw-accent);
+/*
+ * The keyboard cursor.
+ *
+ * The tree owns focus and moves an active descendant, so the browser draws
+ * no focus ring of its own -- the row has to draw one. A 2px left bar was
+ * not enough: arrow keys moved the selection with no visible change, which
+ * made keyboard navigation feel broken even though it worked.
+ *
+ * Only shown while the tree actually has focus, so a stale cursor does not
+ * compete with the open document's highlight.
+ */
+.mw-tree:focus .mw-tree-row.is-focused,
+.mw-tree:focus-visible .mw-tree-row.is-focused {
+  background: var(--mw-bg-active);
+  outline: 2px solid var(--mw-focus);
+  outline-offset: -2px;
+  color: var(--mw-fg);
+}
+
+/* The open document, distinct from wherever the cursor happens to be. */
+.mw-tree-row.is-active {
+  box-shadow: inset 3px 0 0 var(--mw-accent);
 }
 
 .mw-tree-chevron {

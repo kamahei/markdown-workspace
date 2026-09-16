@@ -19,6 +19,7 @@ import { Tabs, type Tab } from './components/Tabs';
 import { ErrorPanel, FileAccessPanel, LoadingPane } from './components/States';
 import { useFileTree } from './hooks/useFileTree';
 import { useSettingsSync } from './hooks/useSettingsSync';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useScrollMemory } from './hooks/useScrollMemory';
 import { useEnrichment } from './hooks/useEnrichment';
 
@@ -81,10 +82,11 @@ export function WorkspaceApp({
   const sanitizer = useMemo(() => createSanitizer(doc.defaultView!), [doc]);
   const enrichment = useEnrichment(sanitizer, settings, doc);
   const tree = useFileTree(fileSource, fileSource ? '/' : null);
-  const { reveal } = tree;
+  const { reveal, setFilter } = tree;
 
   const openedInitial = useRef(false);
   const scroller = useRef<HTMLElement>(null);
+  const filterRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     applyTheme(doc.documentElement, settings.theme);
@@ -181,6 +183,30 @@ export function WorkspaceApp({
     onSaveSettings(updated);
   }, [settings, onSaveSettings]);
 
+  useKeyboardShortcuts(
+    doc,
+    useMemo(
+      () => ({
+        toggleSidebar: () => setSidebarVisible((v) => !v),
+        toggleRaw: () => setRaw((v) => !v),
+        focusFilter: () => {
+          setSidebarVisible(true);
+          requestAnimationFrame(() => filterRef.current?.focus());
+        },
+        closeTab: () => {
+          if (activeId) closeTab(activeId);
+        },
+        escape: () => {
+          if (doc.activeElement === filterRef.current) {
+            setFilter('');
+            filterRef.current?.blur();
+          }
+        },
+      }),
+      [doc, setFilter, activeId, closeTab],
+    ),
+  );
+
   const treeOptions = useMemo(
     () => ({
       showHidden: settings.fileBrowser.showHiddenFiles,
@@ -274,6 +300,7 @@ export function WorkspaceApp({
                   </p>
                 ) : null}
                 <FileTree
+                  filterRef={filterRef}
                   state={tree.state}
                   options={treeOptions}
                   onToggle={tree.toggle}

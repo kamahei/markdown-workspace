@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'preact/hooks';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { PageInfo } from '@core/reader/classify';
 import { basename, type FileSource } from '@core/fs/types';
 import { pathToFileUrl } from '@core/fs/file-url-source';
@@ -10,6 +10,7 @@ import { SidebarHeader } from './components/SidebarHeader';
 import { FileAccessPanel, ErrorPanel } from './components/States';
 import { useFileTree } from './hooks/useFileTree';
 import { useSettingsSync } from './hooks/useSettingsSync';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
 interface DirectoryAppProps {
   page: PageInfo;
@@ -46,9 +47,11 @@ export function DirectoryApp({
   // without a reload (FR-26).
   const [settings, setSettings] = useSettingsSync(initialSettings);
   const [checking, setChecking] = useState(false);
+  const filterRef = useRef<HTMLInputElement>(null);
 
   const directory = page.directory ?? '/';
   const tree = useFileTree(fileSource, directory);
+  const { setFilter } = tree;
 
   useEffect(() => {
     applyTheme(doc.documentElement, settings.theme);
@@ -70,6 +73,22 @@ export function DirectoryApp({
       doc.location.href = pathToFileUrl(path);
     },
     [doc],
+  );
+
+  useKeyboardShortcuts(
+    doc,
+    useMemo(
+      () => ({
+        focusFilter: () => filterRef.current?.focus(),
+        escape: () => {
+          if (doc.activeElement === filterRef.current) {
+            setFilter('');
+            filterRef.current?.blur();
+          }
+        },
+      }),
+      [doc, setFilter],
+    ),
   );
 
   const treeOptions = useMemo(
@@ -131,6 +150,7 @@ export function DirectoryApp({
           />
           {fileSource ? (
             <FileTree
+              filterRef={filterRef}
               state={tree.state}
               options={treeOptions}
               onToggle={tree.toggle}

@@ -19,6 +19,7 @@ import { SidebarHeader } from './components/SidebarHeader';
 import { useFileTree } from './hooks/useFileTree';
 import { useEnrichment } from './hooks/useEnrichment';
 import { useSettingsSync } from './hooks/useSettingsSync';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useScrollMemory } from './hooks/useScrollMemory';
 
 interface ReaderAppProps {
@@ -62,6 +63,7 @@ export function ReaderApp({
   const [raw, setRaw] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const scroller = useRef<HTMLElement>(null);
+  const filterRef = useRef<HTMLInputElement>(null);
 
   const documentPath = page.path ?? '';
   const sanitizer = useMemo(() => createSanitizer(doc.defaultView!), [doc]);
@@ -74,7 +76,7 @@ export function ReaderApp({
   const enrichment = useEnrichment(sanitizer, settings, doc);
 
   const tree = useFileTree(fileSource, treeRoot);
-  const { reveal } = tree;
+  const { reveal, setFilter } = tree;
 
   // Restored only once the document is rendered, so scrollHeight is real.
   useScrollMemory(scroller, raw ? null : documentPath, loadScroll, saveScroll, true);
@@ -113,6 +115,28 @@ export function ReaderApp({
       doc.location.href = `${pathToFileUrl(directory.replace(/\/+$/, ''))}/`;
     },
     [doc],
+  );
+
+  useKeyboardShortcuts(
+    doc,
+    useMemo(
+      () => ({
+        toggleSidebar: () => setSidebarVisible((v) => !v),
+        toggleRaw: () => setRaw((v) => !v),
+        focusFilter: () => {
+          // Revealing the sidebar first, or the filter cannot take focus.
+          setSidebarVisible(true);
+          requestAnimationFrame(() => filterRef.current?.focus());
+        },
+        escape: () => {
+          if (doc.activeElement === filterRef.current) {
+            setFilter('');
+            filterRef.current?.blur();
+          }
+        },
+      }),
+      [doc, setFilter],
+    ),
   );
 
   const treeOptions = useMemo(
@@ -174,6 +198,7 @@ export function ReaderApp({
           <SidebarHeader root={treeRoot ?? ''} onNavigateUp={openFolder} />
           {fileSource ? (
             <FileTree
+              filterRef={filterRef}
               state={tree.state}
               options={treeOptions}
               onToggle={tree.toggle}

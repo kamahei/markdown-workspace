@@ -10,8 +10,13 @@ import {
 
 const ROW_HEIGHT = 24;
 
+/** Stable per-index id, so aria-activedescendant can point at a row. */
+const rowId = (index: number) => `mw-tree-row-${index}`;
+
 interface FileTreeProps {
   state: TreeState;
+  /** Set by the parent to focus the filter from a shortcut. */
+  filterRef?: { current: HTMLInputElement | null };
   options: TreeOptions;
   onToggle: (path: string) => void;
   onOpen: (path: string) => void;
@@ -30,6 +35,7 @@ interface FileTreeProps {
  */
 export function FileTree({
   state,
+  filterRef,
   options,
   onToggle,
   onOpen,
@@ -133,6 +139,7 @@ export function FileTree({
     <div class="mw-tree-wrap">
       <div class="mw-tree-filter">
         <input
+          ref={filterRef}
           type="search"
           class="mw-input"
           placeholder="Filter files…"
@@ -161,6 +168,7 @@ export function FileTree({
             class="mw-tree"
             tabIndex={0}
             onKeyDown={onKeyDown}
+            aria-activedescendant={rows[focusIndex] ? rowId(focusIndex) : undefined}
             style={{ height: `${rows.length * ROW_HEIGHT}px` }}
           >
             {/* Only the visible window is mounted; the spacer keeps the
@@ -169,6 +177,7 @@ export function FileTree({
               {window.map((row, i) => (
                 <TreeRow
                   key={row.path}
+                  id={rowId(start + i)}
                   row={row}
                   focused={start + i === focusIndex}
                   onToggle={onToggle}
@@ -185,6 +194,7 @@ export function FileTree({
 }
 
 interface TreeRowProps {
+  id: string;
   row: TreeNode;
   focused: boolean;
   onToggle: (path: string) => void;
@@ -192,11 +202,12 @@ interface TreeRowProps {
   onFocus: () => void;
 }
 
-function TreeRow({ row, focused, onToggle, onOpen, onFocus }: TreeRowProps) {
+function TreeRow({ id, row, focused, onToggle, onOpen, onFocus }: TreeRowProps) {
   const isDirectory = row.kind === 'directory';
 
   return (
     <div
+      id={id}
       role="treeitem"
       aria-level={row.depth + 1}
       aria-expanded={isDirectory ? row.expanded : undefined}
