@@ -264,9 +264,18 @@ async function handleAddOrigin(input: string) {
   const { ok, pattern } = normalizePattern(input);
   if (!ok) return { granted: false, settings };
 
+  /*
+   * Verified, not requested. `chrome.permissions.request` is only allowed
+   * during a user gesture and a service worker has none -- asking from here
+   * failed with "This function must be called during a user gesture" every
+   * single time, which the options page showed as Chrome declining. The
+   * request now happens in the page, in the click that caused it, and this
+   * checks the result rather than trusting the caller: an origin recorded
+   * without the permission behind it would show as enabled and do nothing.
+   */
   let granted = false;
   try {
-    granted = await browser.permissions.request({ origins: [pattern] });
+    granted = await browser.permissions.contains({ origins: [pattern] });
   } catch {
     granted = false;
   }

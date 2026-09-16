@@ -13,6 +13,7 @@ import {
   type ThemeMode,
 } from '@core/settings';
 import { shortcutList } from '@core/keyboard';
+import { normalizePattern } from '@core/origins';
 import { send } from '../../src/platform/messaging';
 import { clearAll } from '../../src/platform/recent-folders';
 
@@ -427,18 +428,45 @@ function OriginSection({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
+  /**
+   * Asks Chrome for the origin, then tells the worker to record it.
+   *
+   * The request has to happen **here**, in the click that caused it.
+   * `chrome.permissions.request` is only allowed during a user gesture, and a
+   * service worker has none: asking from the background failed every time
+   * with "This function must be called during a user gesture", which the
+   * page reported as Chrome having declined. Nobody had ever added an origin
+   * successfully, because the prompt was never reached.
+   */
   const add = async () => {
     const value = pattern.trim();
     if (!value) return;
+
+    // Normalized here too, so an unusable address is named rather than
+    // becoming a permission request Chrome would reject on its own terms.
+    const normalized = normalizePattern(value);
+    if (!normalized.ok) {
+      setMessage(normalized.error);
+      return;
+    }
+
     setBusy(true);
     setMessage(null);
     try {
-      const result = await send({ type: 'addOrigin', pattern: value });
+      const granted = await chrome.permissions.request({
+        origins: [normalized.pattern],
+      });
+      if (!granted) {
+        setMessage('Chrome did not grant access to that site.');
+        return;
+      }
+
+      const result = await send({ type: 'addOrigin', pattern: normalized.pattern });
       onChanged(result.settings);
-      setPattern('');
-      if (!result.granted) setMessage('Chrome declined the permission for that origin.');
-    } catch {
-      setMessage('That origin could not be added.');
+      if (result.granted) setPattern('');
+      else setMessage('That site was allowed but could not be saved.');
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'That origin could not be added.');
     } finally {
       setBusy(false);
     }

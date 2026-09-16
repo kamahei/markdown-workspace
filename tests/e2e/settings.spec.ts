@@ -236,6 +236,83 @@ test.describe('remote Markdown (FR-24, architecture C5, Q14)', () => {
     expect(await page.evaluate(() => document.contentType)).toMatch(/markdown/);
   });
 
+  test('asks for the permission from the page, not the worker', async ({
+    serviceWorker,
+  }) => {
+    /*
+     * The platform fact this feature got wrong. `permissions.request` is only
+     * allowed during a user gesture, and a service worker has none, so asking
+     * from the background failed every time -- reported to the user as Chrome
+     * declining. Nobody had ever added an origin successfully.
+     *
+     * Pinned here so moving the call back would fail loudly.
+     */
+    const outcome = await serviceWorker.evaluate(async () => {
+      try {
+        await chrome.permissions.request({ origins: ['https://example.test/*'] });
+        return 'resolved';
+      } catch (err) {
+        return err instanceof Error ? err.message : String(err);
+      }
+    });
+    expect(outcome).toMatch(/user gesture/i);
+  });
+
+  test('asks Chrome for the normalized origin, and records nothing without it', async ({
+    context,
+    extensionId,
+  }) => {
+    /*
+     * The native prompt cannot be clicked from Playwright, so the grant is
+     * stubbed in the page. Everything on either side of it is real.
+     *
+     * Two things are proved. First, the request reaches Chrome at all, and
+     * for the right origin -- the defect was that it never did. Second, the
+     * worker does not take the page's word for it: the stub does not reach
+     * the worker, its own `permissions.contains` says no, and the origin is
+     * therefore not recorded. An origin listed as enabled without the
+     * permission behind it would sit there doing nothing.
+     */
+    const page = await context.newPage();
+    await page.addInitScript(() => {
+      const asked: string[] = [];
+      (window as unknown as { __asked: string[] }).__asked = asked;
+      chrome.permissions.request = ((perms: chrome.permissions.Permissions) => {
+        asked.push(...(perms.origins ?? []));
+        return Promise.resolve(true);
+      }) as typeof chrome.permissions.request;
+    });
+    await page.goto(`chrome-extension://${extensionId}/options.html`);
+
+    await page.getByLabel('Origin pattern').fill('http://127.0.0.1:8788/*');
+    await page.getByRole('button', { name: 'Add' }).click();
+
+    // The port is dropped: Chrome match patterns have no concept of one, so
+    // asking for the address as typed would be asking for something invalid.
+    await expect
+      .poll(() =>
+        page.evaluate(() => (window as unknown as { __asked: string[] }).__asked),
+      )
+      .toEqual(['http://127.0.0.1/*']);
+
+    await expect(page.getByText('could not be saved')).toBeVisible();
+    await expect(page.getByText('No websites added.')).toBeVisible();
+  });
+
+  test('names an address it cannot use instead of asking for it', async ({
+    context,
+    extensionId,
+  }) => {
+    const page = await context.newPage();
+    await page.goto(`chrome-extension://${extensionId}/options.html`);
+
+    await page.getByLabel('Origin pattern').fill('ftp://example.test/*');
+    await page.getByRole('button', { name: 'Add' }).click();
+
+    await expect(page.getByText(/only http and https/i)).toBeVisible();
+    await expect(page.getByText('No websites added.')).toBeVisible();
+  });
+
   test('declares what remote rendering actually needs, and no more', async ({
     context,
     extensionId,
