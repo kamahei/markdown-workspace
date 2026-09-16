@@ -221,3 +221,33 @@ test.describe('shortcuts in the workspace', () => {
       .toBe(true);
   });
 });
+
+test.describe('the shortcut reference on the options page', () => {
+  test('lists the shortcuts that are actually bound', async ({
+    context,
+    extensionId,
+  }) => {
+    // The list and the matcher come from the same module on purpose. This
+    // asserts the page renders it at all: the export existed for a while
+    // with nothing calling it, which is how a shortcut reference silently
+    // stops being shown to anyone.
+    const page = await context.newPage();
+    await page.goto(`chrome-extension://${extensionId}/options.html`);
+
+    const section = page.locator('.mw-shortcut-list');
+    await expect(section).toBeVisible();
+
+    const rows = section.locator('.mw-shortcut-row');
+    await expect(rows).toHaveCount(9);
+
+    await expect(section.getByText('Toggle the sidebar')).toBeVisible();
+    await expect(section.getByText('Focus the file filter')).toBeVisible();
+
+    // A bare slash is a key here, not the separator in "Home / End".
+    const keyCaps = await section.locator('dt kbd').allInnerTexts();
+    expect(keyCaps).toContain('/');
+    expect(keyCaps).toContain('Home');
+    expect(keyCaps).toContain('End');
+    expect(keyCaps).toContain('Alt');
+  });
+});

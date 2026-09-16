@@ -198,3 +198,61 @@ body {
     flex-direction: column;
   }
 }
+
+/* Keyboard shortcuts ----------------------------------------------------- */
+
+.mw-shortcut-list {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.35rem 1rem;
+  margin: 0.75rem 0 0;
+}
+
+.mw-shortcut-row {
+  display: contents;
+}
+
+.mw-shortcut-row dt {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.mw-shortcut-row dd {
+  margin: 0;
+  align-self: center;
+  color: var(--mw-fg-muted);
+}
+
+.mw-shortcut-sep {
+  color: var(--mw-fg-muted);
+  font-size: 12px;
+}
+
+.mw-options kbd {
+  display: inline-block;
+  min-width: 1.4em;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid var(--mw-border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--mw-bg);
+  color: var(--mw-fg);
+  font-family: var(--mw-font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .mw-shortcut-list {
+    grid-template-columns: 1fr;
+    gap: 0.1rem;
+  }
+
+  .mw-shortcut-row dd {
+    margin-bottom: 0.6rem;
+  }
+}

@@ -12,6 +12,7 @@ import {
   type SortBy,
   type ThemeMode,
 } from '@core/settings';
+import { shortcutList } from '@core/keyboard';
 import { send } from '../../src/platform/messaging';
 import { clearAll } from '../../src/platform/recent-folders';
 
@@ -260,6 +261,8 @@ function Options({ initial }: { initial: Settings }) {
 
       <OriginSection settings={settings} onChanged={setSettings} />
 
+      <ShortcutSection />
+
       <section class="mw-options-section mw-options-danger">
         <h2>Reset</h2>
         <p>
@@ -296,6 +299,80 @@ function Options({ initial }: { initial: Settings }) {
       </section>
     </div>
   );
+}
+
+/**
+ * Detects macOS so the list says Cmd rather than Ctrl.
+ *
+ * `navigator.platform` is deprecated but is the only string every Chrome
+ * version still fills in; `userAgentData` is preferred where it exists.
+ */
+function isMacPlatform(): boolean {
+  const data = (navigator as Navigator & { userAgentData?: { platform?: string } })
+    .userAgentData;
+  const platform = data?.platform ?? navigator.platform ?? '';
+  return /mac/i.test(platform);
+}
+
+/**
+ * The shortcut reference (NFR-7).
+ *
+ * Rendered from `shortcutList()`, the same list `matchShortcut` is tested
+ * against, so what this page shows cannot drift away from what the keys
+ * actually do — which is the defect that made this section necessary.
+ */
+function ShortcutSection() {
+  const mac = isMacPlatform();
+  const shortcuts = shortcutList(mac ? 'mac' : 'other');
+
+  return (
+    <section class="mw-options-section">
+      <h2>Keyboard shortcuts</h2>
+      <p class="mw-options-note">
+        These are fixed. Chrome reserves combinations like <kbd>{mac ? 'Cmd' : 'Ctrl'}</kbd>
+        <span class="mw-shortcut-sep">+</span>
+        <kbd>W</kbd> for itself and never delivers them to a page, so they are not offered
+        here.
+      </p>
+
+      <dl class="mw-shortcut-list">
+        {shortcuts.map(({ keys, description }) => (
+          <div key={keys} class="mw-shortcut-row">
+            <dt>
+              {splitKeys(keys).map((token, i) =>
+                token.kind === 'key' ? (
+                  <kbd key={i}>{token.text}</kbd>
+                ) : (
+                  <span key={i} class="mw-shortcut-sep">
+                    {token.text}
+                  </span>
+                ),
+              )}
+            </dt>
+            <dd>{description}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
+type KeyToken = { kind: 'key' | 'sep'; text: string };
+
+/**
+ * Splits a displayed shortcut into keys and the separators between them, so
+ * each key gets its own `<kbd>`. `Ctrl+\` splits on the plus; `↑ ↓` and
+ * `Home / End` are alternatives rather than combinations and split on the
+ * space or slash, which is why one separator is not enough.
+ */
+function splitKeys(keys: string): KeyToken[] {
+  return keys
+    .split(/(\s+\/\s+|\+|\s+)/)
+    .filter((part) => part !== '')
+    .map((part) => ({
+      kind: /^(\s+\/\s+|\+|\s+)$/.test(part) ? 'sep' : 'key',
+      text: part.trim() === '' ? ' ' : part.trim(),
+    }));
 }
 
 /** Opt-in remote origins (FR-22, FR-23). Wired to real permissions in Phase 7. */
