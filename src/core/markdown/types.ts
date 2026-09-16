@@ -23,8 +23,6 @@ export const ENRICH_ID_ATTR = 'data-mw-id';
  */
 export const ANCHOR_ATTR = 'data-mw-anchor';
 
-export type EnrichmentKind = 'code' | 'math' | 'diagram';
-
 export interface CodeEnrichment {
   kind: 'code';
   id: string;

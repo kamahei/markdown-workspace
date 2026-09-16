@@ -3,6 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- WXT takes options_ui from the entrypoint, not from wxt.config.ts,
+         and defaults it to false. This page is long enough that the embedded
+         dialog crops it, so it opens in a tab. -->
+    <meta name="manifest.open_in_tab" content="true" />
     <title>Markdown Workspace</title>
   </head>
   <body>

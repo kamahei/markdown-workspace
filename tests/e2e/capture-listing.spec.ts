@@ -32,10 +32,20 @@ test('capture a real Chrome directory listing', async ({
     return res.text();
   }, url);
 
-  await writeFile('tests/fixtures/chrome-directory-listing.html', html, 'utf8');
-  console.log('--- CAPTURED LISTING (first 3000 chars) ---');
-  console.log(html.slice(0, 3000));
-  console.log('--- length:', html.length);
+  // The capture embeds the temporary directory it was taken from, which on
+  // a developer machine contains their username. This fixture is committed
+  // to a public repository, so the path is replaced with a neutral one. Only
+  // the page header shows it; the parser is told the root separately.
+  const sanitized = html.replace(
+    /start\("[^"]*"\)/,
+    'start("/tmp/markdown-workspace-fixture/")',
+  );
+  expect(sanitized).not.toContain(root);
 
-  expect(html.length).toBeGreaterThan(0);
+  await writeFile('tests/fixtures/chrome-directory-listing.html', sanitized, 'utf8');
+  console.log('--- CAPTURED LISTING (first 3000 chars) ---');
+  console.log(sanitized.slice(0, 3000));
+  console.log('--- length:', sanitized.length);
+
+  expect(sanitized.length).toBeGreaterThan(0);
 });

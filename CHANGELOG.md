@@ -29,6 +29,11 @@ Feature-complete for the first Chrome Web Store release. Not yet published.
 - Settings changes reach open documents without a reload.
 - Japanese, Chinese and Korean text renders without the spurious space a
   wrapped line would otherwise gain.
+- Keyboard navigation throughout: the file tree follows the ARIA tree pattern,
+  a dropped folder starts with the list focused, and opening a document keeps
+  the cursor there even though reader mode loads a new page each time. The
+  options page lists the shortcuts, generated from the same table the matcher
+  is tested against.
 
 ### Security
 

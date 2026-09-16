@@ -25,11 +25,12 @@ uploaded.
 
 All storage is local to your browser:
 
-| Data                                                         | Where                  | Why                                                                                         |
-| ------------------------------------------------------------ | ---------------------- | ------------------------------------------------------------------------------------------- |
-| Your settings (theme, enabled features, allowed origins)     | `chrome.storage.sync`  | So your preferences persist, and follow your Chrome profile if you have Chrome Sync enabled |
-| Recently opened folders and their permission handles         | `IndexedDB`            | So the workspace can reopen a folder without asking you to pick it again                    |
-| Per-document state such as scroll position and sidebar width | `chrome.storage.local` | So documents reopen where you left off                                                      |
+| Data                                                                       | Where                                                   | Why                                                                                                                            |
+| -------------------------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Your settings (theme, enabled features, allowed origins)                   | `chrome.storage.sync`                                   | So your preferences persist, and follow your Chrome profile if you have Chrome Sync enabled                                    |
+| Recently opened folders and their permission handles                       | `IndexedDB`                                             | So the workspace can reopen a folder without asking you to pick it again                                                       |
+| Per-document state such as scroll position and sidebar width               | `chrome.storage.local`                                  | So documents reopen where you left off                                                                                         |
+| The folder a tab is browsing, and whether the file list had keyboard focus | `chrome.storage.session` and the tab's `sessionStorage` | So moving between documents keeps the sidebar and the cursor where you left them. Discarded when the tab or the browser closes |
 
 If you use Chrome Sync, your **settings** sync between your own devices through
 Google's infrastructure under your own Google account. This is standard Chrome
@@ -55,6 +56,7 @@ settings** in the options page.
 | `file:///*`               | Read the local Markdown files and folders you open                                                         |
 | `declarativeNetRequest`   | Correct the `Content-Type` header on opted-in origins so Chrome renders Markdown instead of downloading it |
 | `contextMenus`            | Provide the right-click entry that opens a file in the workspace                                           |
+| `scripting`               | Register the rendering script on origins you have explicitly approved; unused until you add one            |
 | Optional host permissions | Requested only when you add a specific origin for remote Markdown rendering                                |
 
 ## Changes

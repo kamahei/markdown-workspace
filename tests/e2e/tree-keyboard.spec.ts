@@ -182,9 +182,9 @@ test.describe('Right and Left move through the hierarchy', () => {
     await expect(focusedRow(page)).toHaveText(/docs/);
 
     await page.keyboard.press('ArrowLeft'); // docs is open: close it
-    await expect(
-      page.locator('[role="treeitem"]', { hasText: 'guide.md' }),
-    ).toHaveCount(0);
+    await expect(page.locator('[role="treeitem"]', { hasText: 'guide.md' })).toHaveCount(
+      0,
+    );
     await expect(focusedRow(page)).toHaveText(/docs/);
   });
 

@@ -119,7 +119,7 @@ export interface ResponseMap {
   setWorkspaceRoot: { saved: boolean };
   openWorkspace: { opened: boolean };
   getSettings: Settings;
-  saveSettings: { saved: boolean };
+  saveSettings: { saved: boolean; reason?: string };
   addOrigin: { granted: boolean; settings: Settings };
   removeOrigin: { removed: boolean; settings: Settings };
 }

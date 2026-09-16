@@ -121,8 +121,3 @@ export async function highlight(request: HighlightRequest): Promise<string | nul
     theme: request.theme === 'dark' ? 'github-dark' : 'github-light',
   });
 }
-
-/** Languages this build can highlight, for the options page. */
-export function supportedLanguages(): string[] {
-  return [...Object.keys(LANGS), ...Object.keys(ALIASES)].sort();
-}

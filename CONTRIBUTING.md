@@ -40,13 +40,19 @@ entrypoints/        Extension entry points (WXT convention)
 src/core/           Framework-free logic. Unit-tested, no DOM or Preact imports.
   markdown/           markdown-it pipeline and plugins
   sanitize/           DOMPurify configuration
-  highlight/          Shiki integration
-  math/               KaTeX integration
-  diagram/            Mermaid integration
-  fs/                 File and folder access abstraction
+  enrich/             Placeholder contract for highlighting, math and diagrams
+  fs/                 File and folder access abstraction, and the tree model
   link/               Relative link and image resolution
+  reader/             Deciding what a page is before touching it
+  keyboard/           Shortcut matching and the list that documents it
+  messaging/          The request and response contract between surfaces
+  origins/            Opt-in http(s) origin patterns and network rules
   settings/           Settings schema, defaults, and migrations
-src/ui/             Preact components and theme stylesheets
+src/ui/             Preact components, hooks and theme stylesheets
+src/platform/       Adapter layer: the only place outside entrypoints/ that
+                    may call extension APIs
+src/lazy/           Shiki, KaTeX and Mermaid, built as separate chunks and
+                    loaded by URL only when a document needs them
 tests/              Unit and end-to-end tests
 ```
 
@@ -54,6 +60,10 @@ The important rule: **`src/core/` must not import Preact, touch the DOM
 directly, or call `chrome.*` APIs.** It takes plain inputs and returns plain
 outputs, which is what makes it testable without a browser. Browser and UI
 concerns belong in `entrypoints/` and `src/ui/`.
+
+This is enforced by ESLint, not by convention — see the boundary rules in
+`eslint.config.js`. Core may still _operate on_ a `Document` or a
+`FileSystemDirectoryHandle`; what it may not do is reach for one as a global.
 
 ## Commands
 

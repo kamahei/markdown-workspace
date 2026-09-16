@@ -26,45 +26,70 @@ function Options({ initial }: { initial: Settings }) {
   const [fileAccess, setFileAccess] = useState<boolean | null>(null);
   const [resetting, setResetting] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  /**
+   * Saves, and says so when it did not.
+   *
+   * `storage.sync` enforces an 8 KB item limit and a write rate ceiling, so a
+   * save genuinely can fail. The page updates optimistically, which is right
+   * for something this small -- but silently showing a value that was never
+   * written is not.
+   */
+  const persist = useCallback((next: Settings) => {
+    void send({ type: 'saveSettings', settings: next })
+      .then((result) => {
+        setSaveError(result.saved ? null : (result.reason ?? 'Unknown error'));
+      })
+      .catch((err: unknown) => {
+        setSaveError(err instanceof Error ? err.message : String(err));
+      });
+  }, []);
 
   useEffect(() => {
     void send({ type: 'checkFileAccess' }).then((r) => setFileAccess(r.granted));
   }, []);
 
-  const update = useCallback((patch: Partial<Settings>) => {
-    setSettings((prev) => {
-      const next = { ...prev, ...patch };
-      void send({ type: 'saveSettings', settings: next });
-      return next;
-    });
-  }, []);
+  const update = useCallback(
+    (patch: Partial<Settings>) => {
+      setSettings((prev) => {
+        const next = { ...prev, ...patch };
+        persist(next);
+        return next;
+      });
+    },
+    [persist],
+  );
 
   useEffect(() => {
     applyTheme(document.documentElement, settings.theme);
     applyContentWidth(document.documentElement, settings.contentWidth);
   }, [settings.theme, settings.contentWidth]);
 
-  const commitExcluded = useCallback((el: HTMLTextAreaElement) => {
-    const excludedDirectories = el.value
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean);
+  const commitExcluded = useCallback(
+    (el: HTMLTextAreaElement) => {
+      const excludedDirectories = el.value
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean);
 
-    setSettings((prev) => {
-      const current = prev.fileBrowser.excludedDirectories;
-      const unchanged =
-        current.length === excludedDirectories.length &&
-        current.every((value, i) => value === excludedDirectories[i]);
-      if (unchanged) return prev;
+      setSettings((prev) => {
+        const current = prev.fileBrowser.excludedDirectories;
+        const unchanged =
+          current.length === excludedDirectories.length &&
+          current.every((value, i) => value === excludedDirectories[i]);
+        if (unchanged) return prev;
 
-      const next = {
-        ...prev,
-        fileBrowser: { ...prev.fileBrowser, excludedDirectories },
-      };
-      void send({ type: 'saveSettings', settings: next });
-      return next;
-    });
-  }, []);
+        const next = {
+          ...prev,
+          fileBrowser: { ...prev.fileBrowser, excludedDirectories },
+        };
+        persist(next);
+        return next;
+      });
+    },
+    [persist],
+  );
 
   const reset = useCallback(async () => {
     setResetting(true);
@@ -87,6 +112,20 @@ function Options({ initial }: { initial: Settings }) {
         <h1>Markdown Workspace</h1>
         <p>Settings are stored locally and never leave your device.</p>
       </header>
+
+      {saveError ? (
+        <section class="mw-options-section mw-options-alert" role="alert">
+          <h2>That setting was not saved</h2>
+          <p>
+            Chrome refused the write, so what you see here is not what will be used.
+            Chrome limits how much and how often an extension may store synced settings;
+            shortening the hidden folder list or removing an origin usually clears it.
+          </p>
+          <p class="mw-options-note">
+            <code>{saveError}</code>
+          </p>
+        </section>
+      ) : null}
 
       {fileAccess === false ? (
         <section class="mw-options-section mw-options-alert" role="alert">
@@ -329,7 +368,8 @@ function ShortcutSection() {
     <section class="mw-options-section">
       <h2>Keyboard shortcuts</h2>
       <p class="mw-options-note">
-        These are fixed. Chrome reserves combinations like <kbd>{mac ? 'Cmd' : 'Ctrl'}</kbd>
+        These are fixed. Chrome reserves combinations like{' '}
+        <kbd>{mac ? 'Cmd' : 'Ctrl'}</kbd>
         <span class="mw-shortcut-sep">+</span>
         <kbd>W</kbd> for itself and never delivers them to a page, so they are not offered
         here.

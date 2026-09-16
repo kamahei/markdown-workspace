@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures';
 
@@ -253,5 +254,66 @@ test.describe('remote Markdown (FR-24, architecture C5)', () => {
       async () => await chrome.permissions.getAll(),
     );
     expect(granted.origins ?? []).not.toContain('https://*/*');
+  });
+
+  test('says so when Chrome refuses to store a setting', async ({
+    context,
+    extensionId,
+  }) => {
+    // storage.sync caps a single item at 8 KB. The page used to fire the save
+    // and ignore the result, so it went on showing a value that was never
+    // written. This drives the real quota rather than a stub.
+    const page = await context.newPage();
+    await page.goto(`chrome-extension://${extensionId}/options.html`);
+
+    const huge = Array.from({ length: 600 }, (_, i) => `folder-${i}-${'x'.repeat(20)}`);
+    await page.getByLabel('Hidden folders').fill(huge.join(String.fromCharCode(10)));
+    await page.getByLabel('Hidden folders').blur();
+
+    await expect(page.getByRole('alert')).toContainText('was not saved');
+
+    // And the stored value is genuinely the old one, not the one on screen.
+    const stored = await page.evaluate(
+      async () =>
+        (
+          (await chrome.runtime.sendMessage({ type: 'getSettings' })) as {
+            fileBrowser: { excludedDirectories: string[] };
+          }
+        ).fileBrowser.excludedDirectories,
+    );
+    expect(stored).toContain('node_modules');
+  });
+
+  test('ships the manifest the config asks for', async ({ serviceWorker }) => {
+    // WXT takes some manifest keys from the entrypoint rather than from
+    // wxt.config.ts, and silently wins. `options_ui.open_in_tab` was set to
+    // true in the config and shipped as false for exactly that reason, which
+    // no test noticed because the suite navigates to options.html directly.
+    const manifest = await serviceWorker.evaluate(() => chrome.runtime.getManifest());
+    expect(manifest.options_ui?.open_in_tab).toBe(true);
+    expect(manifest.permissions).toEqual([
+      'storage',
+      'contextMenus',
+      'declarativeNetRequest',
+      'scripting',
+    ]);
+  });
+
+  test('documents every permission it declares', async ({ serviceWorker }) => {
+    // The store asks for a written justification per permission, and the
+    // privacy policy is the public version of that answer. `scripting` was
+    // declared, used, and absent from the policy until a review caught it;
+    // this makes the next one impossible to miss.
+    const manifest = await serviceWorker.evaluate(() => chrome.runtime.getManifest());
+    const policy = await readFile('PRIVACY.md', 'utf8');
+
+    const undocumented = (manifest.permissions ?? []).filter(
+      (permission) => !policy.includes(`\`${permission}\``),
+    );
+    expect(undocumented).toEqual([]);
+
+    for (const host of manifest.host_permissions ?? []) {
+      expect(policy).toContain(host);
+    }
   });
 });

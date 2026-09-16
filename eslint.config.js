@@ -29,6 +29,14 @@ const CORE_BANNED_GLOBALS = [
   },
   { name: 'indexedDB', message: 'src/core must not touch browser storage directly.' },
   { name: 'navigator', message: 'src/core must receive platform data as a parameter.' },
+  // Also banned here rather than through `no-console` alone: a bare severity
+  // in an override keeps the options from the config above, which permit
+  // warn and error, and the rule's schema rejects an empty allow list. Core
+  // reports a failure by returning or throwing.
+  {
+    name: 'console',
+    message: 'src/core must not log. Return or throw and let the caller decide.',
+  },
 ];
 
 const CORE_BANNED_IMPORTS = [

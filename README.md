@@ -45,6 +45,10 @@ like a small static site, with no build step and nothing uploaded anywhere.
   spurious space a wrapped line would otherwise gain mid-sentence.
 - **Opt-in remote rendering** — Markdown served over `http(s)` renders only for
   origins you explicitly add in the options page. Nothing is enabled by default.
+- **Usable without a mouse** — arrow through the file tree, <kbd>Enter</kbd> to
+  open, <kbd>/</kbd> to filter. Opening a document keeps the cursor in the tree,
+  so a folder can be read end to end from the keyboard. The full list is on the
+  options page.
 
 ## Try it
 
@@ -100,13 +104,14 @@ this and detects whether the permission is active.
 
 ## Usage
 
-| What you want                  | What to do                                                                       |
-| ------------------------------ | -------------------------------------------------------------------------------- |
-| Read one Markdown file         | Drag the file onto a Chrome window, or open it with <kbd>Ctrl</kbd>+<kbd>O</kbd> |
-| Read a whole folder            | Drag the folder onto a Chrome window, or onto the workspace page                 |
-| Open the workspace directly    | Click the Markdown Workspace toolbar icon                                        |
-| See the unrendered source      | Use the raw/rendered toggle in the extension popup                               |
-| Render Markdown from a website | Add that origin in the options page, then reload                                 |
+| What you want                  | What to do                                                                        |
+| ------------------------------ | --------------------------------------------------------------------------------- |
+| Read one Markdown file         | Drag the file onto a Chrome window, or open it with <kbd>Ctrl</kbd>+<kbd>O</kbd>  |
+| Read a whole folder            | Drag the folder onto a Chrome window, or onto the workspace page                  |
+| Open the workspace directly    | Click the Markdown Workspace toolbar icon                                         |
+| See the unrendered source      | Use the raw/rendered toggle in the toolbar, or <kbd>Ctrl</kbd>+<kbd>&#92;</kbd>   |
+| Move around without a mouse    | <kbd>/</kbd> to filter, <kbd>&darr;</kbd> into the list, <kbd>Enter</kbd> to open |
+| Render Markdown from a website | Add that origin in the options page, then reload                                  |
 
 ## Browser Support
 

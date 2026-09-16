@@ -2,6 +2,7 @@ import { parseDirectoryListing } from '@core/fs/listing-parser';
 import {
   fail,
   ok,
+  type Broadcast,
   type DirectoryEntryPayload,
   type FileContentPayload,
   type Request,
@@ -36,12 +37,28 @@ async function loadSettings(): Promise<Settings> {
   return migrateSettings(stored[SETTINGS_KEY]);
 }
 
-async function saveSettings(settings: Settings): Promise<void> {
-  await browser.storage.sync.set({ [SETTINGS_KEY]: settings });
+/**
+ * Persists settings, reporting whether it worked.
+ *
+ * `storage.sync` rejects on its own quotas -- 8 KB for a single item, and a
+ * write rate ceiling -- both of which a real user reaches by adding enough
+ * origins or hidden folders. The rejection used to propagate into callers
+ * that do not await, so the page went on showing a value that was never
+ * saved. Open surfaces are only told about a change that actually happened.
+ */
+async function saveSettings(
+  settings: Settings,
+): Promise<{ saved: boolean; reason?: string }> {
+  try {
+    await browser.storage.sync.set({ [SETTINGS_KEY]: settings });
+  } catch (err) {
+    return { saved: false, reason: err instanceof Error ? err.message : String(err) };
+  }
   broadcast({ type: 'settingsChanged', settings });
+  return { saved: true };
 }
 
-function broadcast(message: unknown): void {
+function broadcast(message: Broadcast): void {
   // No receiver is a normal state, not an error: there may simply be no open
   // surface. Swallow it rather than logging noise on every settings change.
   browser.runtime.sendMessage(message).catch(() => {});
@@ -271,7 +288,15 @@ async function handleAddOrigin(input: string) {
   if (!granted) return { granted: false, settings };
 
   const updated = addOrigin(settings, pattern);
-  await saveSettings(updated);
+  const persisted = await saveSettings(updated);
+  if (!persisted.saved) {
+    // The permission was granted but the origin could not be recorded. Giving
+    // it back is the only honest outcome: an access the user cannot see in
+    // the list is an access they cannot remove from it either.
+    await browser.permissions.remove({ origins: [pattern] }).catch(() => {});
+    return { granted: false, settings };
+  }
+
   await applyOriginEffects(updated);
   return { granted: true, settings: updated };
 }
@@ -279,6 +304,9 @@ async function handleAddOrigin(input: string) {
 async function handleRemoveOrigin(pattern: string) {
   const settings = await loadSettings();
   const updated = removeOrigin(settings, pattern);
+  // A failure here is not worth aborting on: the permission is revoked
+  // below either way, and an entry left in the list shows as revoked rather
+  // than as access the extension still holds.
   await saveSettings(updated);
 
   // Revoking matters: leaving the permission behind would mean the extension
@@ -355,8 +383,7 @@ async function handle(
     case 'getSettings':
       return loadSettings();
     case 'saveSettings':
-      await saveSettings(request.settings);
-      return { saved: true };
+      return saveSettings(request.settings);
     case 'addOrigin':
       return handleAddOrigin(request.pattern);
     case 'removeOrigin':
