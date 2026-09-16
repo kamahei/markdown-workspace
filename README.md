@@ -132,6 +132,7 @@ pnpm test:e2e     # end-to-end tests, including accessibility and performance
 pnpm lint         # lint and format check
 pnpm typecheck    # TypeScript check
 pnpm check:budget # fail if the reader's initial payload grew
+pnpm check:build  # fail if anything in the package loads remote code
 ```
 
 The end-to-end suite needs `pnpm build` first, and the tests that read local

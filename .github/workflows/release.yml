@@ -44,6 +44,9 @@ jobs:
       - name: Bundle budget
         run: pnpm check:budget
 
+      - name: No remote code in the package
+        run: pnpm check:build
+
       - name: Package for Chrome
         run: pnpm zip
 

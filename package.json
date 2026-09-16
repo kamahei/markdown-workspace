@@ -34,6 +34,7 @@
     "lint": "eslint . && prettier --check .",
     "lint:fix": "eslint . --fix && prettier --write .",
     "check:budget": "node scripts/check-bundle-budget.mjs",
+    "check:build": "node scripts/check-build.mjs",
     "postinstall": "wxt prepare",
     "build:lazy": "node scripts/build-lazy.mjs",
     "build:icons": "node scripts/build-icons.mjs",

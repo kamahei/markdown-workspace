@@ -40,6 +40,9 @@ jobs:
       - name: Bundle budget
         run: pnpm check:budget
 
+      - name: No remote code in the package
+        run: pnpm check:build
+
   e2e:
     name: End-to-end
     runs-on: ubuntu-latest

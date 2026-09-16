@@ -134,8 +134,9 @@ Open an issue with:
 
 ## Security Issues
 
-Do not open a public issue for a security vulnerability. Use GitHub's private
-vulnerability reporting on this repository instead.
+Do not open a public issue for a security vulnerability. See
+[SECURITY.md](SECURITY.md) for how to report one privately, and for what this
+project treats as a vulnerability.
 
 ## License
 
