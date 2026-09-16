@@ -35,6 +35,7 @@ const SHOT = { width: 1280, height: 800 };
 const LOCALES = [
   {
     id: 'en',
+    language: 'en-US',
     samples: resolve('samples'),
     tour: 'README.md',
     rich: 'docs/code-and-diagrams.md',
@@ -43,6 +44,7 @@ const LOCALES = [
   },
   {
     id: 'ja',
+    language: 'ja',
     samples: resolve('samples-ja'),
     tour: 'README.md',
     rich: 'docs/コードと図.md',
@@ -51,13 +53,24 @@ const LOCALES = [
   },
 ];
 
-async function launch() {
+/**
+ * A browser in one language.
+ *
+ * Launched per locale rather than once, because the interface follows the
+ * browser and the browser follows the operating system. Taking the default
+ * produced English screenshots with a Japanese sidebar on a Japanese
+ * machine -- half-translated in exactly the way the sample trees exist to
+ * avoid.
+ */
+async function launch(language) {
   const profile = await mkdtemp(join(tmpdir(), 'mw-capture-'));
   const context = await chromium.launchPersistentContext(profile, {
     channel: 'chromium',
     viewport: SHOT,
     deviceScaleFactor: 2,
+    locale: language,
     args: [
+      `--lang=${language}`,
       `--disable-extensions-except=${EXTENSION_PATH}`,
       `--load-extension=${EXTENSION_PATH}`,
       '--no-first-run',
@@ -76,8 +89,16 @@ async function extensionId(context) {
 
 async function shoot(page, dir, name) {
   await page.waitForTimeout(900);
-  await page.screenshot({ path: `${dir}/${name}.png` });
-  console.log(`  ${dir}/${name}.png`);
+  /*
+   * `scale: 'css'` is load-bearing. The context runs at deviceScaleFactor 2
+   * so text rasterizes crisply, but without this the file comes out at
+   * 2560x1600 -- and the store takes 1280x800 or 640x400 and nothing else.
+   *
+   * It shipped that way for weeks because the log printed the size that was
+   * asked for rather than the size that was written.
+   */
+  await page.screenshot({ path: `${dir}/${name}.png`, scale: 'css' });
+  console.log(`  ${dir}/${name}.png  ${await describe(`${dir}/${name}.png`)}`);
 }
 
 /**
@@ -205,10 +226,27 @@ async function capturePromo(context, name, spec) {
   await page.waitForTimeout(400);
   await page.screenshot({
     path: `${OUT}/${name}.png`,
+    scale: 'css',
     clip: { x: 0, y: 0, width: spec.width, height: spec.height },
   });
   await page.close();
-  console.log(`  ${OUT}/${name}.png  (${spec.width}x${spec.height})`);
+  console.log(`  ${OUT}/${name}.png  ${await describe(`${OUT}/${name}.png`)}`);
+}
+
+/**
+ * What was actually written, read back from the file.
+ *
+ * Reporting the requested size instead is how 2560x1600 screenshots went
+ * unnoticed: every line of output said 1280x800.
+ */
+async function describe(path) {
+  const { readFile } = await import('node:fs/promises');
+  const buffer = await readFile(path);
+  const width = buffer.readUInt32BE(16);
+  const height = buffer.readUInt32BE(20);
+  const colourType = buffer[25];
+  const kind = colourType === 2 ? '24-bit, no alpha' : `colour type ${colourType}`;
+  return `${width}x${height}  ${kind}`;
 }
 
 // --- Main -----------------------------------------------------------------
@@ -227,14 +265,16 @@ async function main() {
   await rm(`${OUT}/promo-440x280.png`, { force: true });
   await mkdir(OUT, { recursive: true });
 
-  const { context, profile } = await launch();
-  const id = await extensionId(context);
-
   for (const locale of LOCALES) {
+    const { context, profile } = await launch(locale.language);
+    const id = await extensionId(context);
     await captureLocale(context, id, locale);
+    await context.close();
+    await rm(profile, { recursive: true, force: true }).catch(() => {});
   }
 
   console.log('Promo tile');
+  const { context, profile } = await launch('en-US');
   await capturePromo(context, 'promo-440x280', {
     width: 440,
     height: 280,
@@ -242,7 +282,6 @@ async function main() {
     headline: 'Read a whole folder of Markdown',
     sub: 'File tree, working links, nothing uploaded.',
   });
-
   await context.close();
   await rm(profile, { recursive: true, force: true }).catch(() => {});
 
@@ -276,10 +315,66 @@ async function main() {
     'utf8',
   );
 
+  await verify();
+
   console.log(`\nWrote assets to ${OUT}/`);
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+/**
+ * The store's own limits, as a check rather than as a comment.
+ *
+ * Every one of these was violated at some point and none of it showed:
+ * screenshots went out at 2560x1600 for weeks because the log printed the
+ * size that was asked for. The store takes 1280x800 or 640x400 and nothing
+ * else, and an upload is the wrong place to find that out.
+ */
+export async function verify() {
+  const { readdir, readFile } = await import('node:fs/promises');
+  const problems = [];
+
+  const check = async (path, allowed, label) => {
+    const buffer = await readFile(path);
+    const size = `${buffer.readUInt32BE(16)}x${buffer.readUInt32BE(20)}`;
+    const colourType = buffer[25];
+    if (!allowed.includes(size)) {
+      problems.push(`${path}: ${size}, but ${label} takes ${allowed.join(' or ')}`);
+    }
+    // 24-bit PNG without alpha. Playwright writes colour type 2 for an
+    // opaque page; a transparent one would come out as 6.
+    if (colourType !== 2) {
+      problems.push(`${path}: colour type ${colourType}, but 24-bit RGB is required`);
+    }
+  };
+
+  for (const locale of LOCALES) {
+    const dir = `${OUT}/${locale.id}`;
+    const files = (await readdir(dir)).filter((f) => f.endsWith('.png'));
+    if (files.length > 5) {
+      problems.push(`${dir}: ${files.length} screenshots, but the store takes five`);
+    }
+    for (const file of files) {
+      await check(`${dir}/${file}`, ['1280x800', '640x400'], 'a screenshot');
+    }
+  }
+
+  await check(`${OUT}/promo-440x280.png`, ['440x280'], 'the small promo tile');
+
+  if (problems.length > 0) {
+    console.error(`\nThese would be rejected at upload:\n`);
+    for (const problem of problems) console.error(`  ${problem}`);
+    process.exit(1);
+  }
+
+  console.log(`\nChecked: every asset is a size and format the store accepts.`);
+}
+
+// `--verify-only` checks what is already on disk, without a browser. Also
+// what makes the check itself testable.
+if (process.argv.includes('--verify-only')) {
+  await verify();
+} else {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}
