@@ -97,6 +97,7 @@ export function DocumentView({
     // sanitizer drops an id that would clobber a document property.
     applyHeadingAnchors(root);
     wrapTables(root);
+    trackCodeScrollability(root);
 
     const cancelled = { value: false };
     void loadRelativeImages(root, documentPath, fileSource, cancelled);
@@ -256,14 +257,31 @@ function wrapTables(root: HTMLElement): void {
 }
 
 /**
- * Makes a table's scroller reachable by keyboard, but only while it scrolls.
+ * The same for code blocks that nothing else has made reachable.
+ *
+ * Shiki puts `tabindex="0"` on the `<pre>` it emits, so a highlighted block
+ * is already fine. A block in a language it does not know keeps the original
+ * `<pre>`, and so does every block when highlighting is switched off in
+ * settings -- and a long line in one of those was cut off with no way to
+ * reach the rest.
+ */
+function trackCodeScrollability(root: HTMLElement): void {
+  for (const pre of Array.from(root.querySelectorAll('pre'))) {
+    if (pre.hasAttribute('tabindex')) continue;
+    trackScrollability(pre);
+  }
+}
+
+/**
+ * Makes a scrolling region reachable by keyboard, but only while it scrolls.
  *
  * A region that scrolls and cannot be focused cannot be scrolled without a
  * pointer, which axe reports as a serious WCAG 2.1.1 violation and which is
- * exactly true: a wide table was simply cut off for a keyboard user.
+ * exactly true: the rest of a wide table, or of a long line of code, was
+ * simply unreachable for a keyboard user.
  *
- * Conditional on purpose. Making every table a tab stop would add one for
- * each table in a document, most of which fit and have nothing to scroll.
+ * Conditional on purpose. Making every table and every code block a tab stop
+ * would add one apiece, most of which fit and have nothing to scroll.
  * Whether it overflows depends on the window, so it is re-measured when the
  * window changes rather than decided once.
  */

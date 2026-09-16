@@ -147,6 +147,40 @@ test.describe('accessibility (NFR-7)', () => {
     await expect(page.locator('.mw-table-scroll')).not.toHaveAttribute('tabindex', '0');
   });
 
+  test('a code block too wide for the window can be scrolled without a pointer', async ({
+    context,
+    makeTree,
+    fileUrl,
+    hasFileAccess,
+  }) => {
+    test.skip(!hasFileAccess, 'needs file:// access');
+
+    // Shiki puts tabindex on the <pre> it emits, so a highlighted block was
+    // already fine and hid this. A block in a language it does not know
+    // keeps the original <pre> -- and so does every block when highlighting
+    // is switched off in settings.
+    const long = `const x = "${'y'.repeat(300)}";`;
+    const fence = (lang: string) =>
+      ['```' + lang, long, '```', ''].join(String.fromCharCode(10));
+    const root = await makeTree({
+      'code.md': ['# Wide code', '', fence('js'), fence('notalanguage')].join(
+        String.fromCharCode(10),
+      ),
+    });
+
+    const page = await context.newPage();
+    await page.setViewportSize({ width: 700, height: 800 });
+    await page.goto(fileUrl(`${root}/code.md`));
+    await expect(page.locator('.mw-doc h1')).toBeVisible();
+    await page.waitForSelector('pre.shiki', { timeout: 25_000 }).catch(() => {});
+
+    const unhighlighted = page.locator('.mw-doc pre:not(.shiki)');
+    await expect(unhighlighted).toHaveAttribute('tabindex', '0');
+
+    const results = await audit(page);
+    expect(results.violations, describeViolations(results)).toEqual([]);
+  });
+
   test('the whole reader is reachable by keyboard alone', async ({
     context,
     makeTree,

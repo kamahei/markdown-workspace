@@ -25,7 +25,7 @@ def slugify(text: str) -> str:
 ```bash
 pnpm install
 pnpm dev          # launches Chrome with the extension loaded
-pnpm test         # 369 unit tests
+pnpm test         # the unit suite
 ```
 
 An unrecognized language stays plain rather than showing an error:
