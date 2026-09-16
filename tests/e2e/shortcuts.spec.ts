@@ -238,7 +238,7 @@ test.describe('the shortcut reference on the options page', () => {
     await expect(section).toBeVisible();
 
     const rows = section.locator('.mw-shortcut-row');
-    await expect(rows).toHaveCount(9);
+    await expect(rows).toHaveCount(10);
 
     await expect(section.getByText('Toggle the sidebar')).toBeVisible();
     await expect(section.getByText('Focus the file filter')).toBeVisible();

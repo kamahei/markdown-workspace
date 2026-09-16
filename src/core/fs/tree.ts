@@ -183,6 +183,38 @@ export function indexOfPath(rows: TreeNode[], path: string | null): number {
 }
 
 /**
+ * Row index of the parent of `index`, or -1 at the top level.
+ *
+ * The flattened list carries depth rather than parent links, so the parent is
+ * the nearest row above that is shallower. `Left` on a leaf uses this: the
+ * ARIA tree pattern moves to the parent there, not simply one row up, which
+ * is what made arrow keys feel like they were wandering.
+ */
+export function parentIndex(rows: TreeNode[], index: number): number {
+  const row = rows[index];
+  if (!row || row.depth === 0) return -1;
+  for (let i = index - 1; i >= 0; i -= 1) {
+    const candidate = rows[i];
+    if (candidate && candidate.depth < row.depth) return i;
+  }
+  return -1;
+}
+
+/**
+ * Row index of the first child of an expanded directory, or -1.
+ *
+ * Children follow their parent immediately in the flattened list, so this is
+ * the next row when it is one level deeper. An expanded but empty directory
+ * has none, which is why this can fail.
+ */
+export function firstChildIndex(rows: TreeNode[], index: number): number {
+  const row = rows[index];
+  if (!row || row.kind !== 'directory' || !row.expanded) return -1;
+  const next = rows[index + 1];
+  return next && next.depth === row.depth + 1 ? index + 1 : -1;
+}
+
+/**
  * The window of rows a virtualized list should render.
  *
  * Overscan keeps a few rows beyond the viewport mounted so scrolling does not

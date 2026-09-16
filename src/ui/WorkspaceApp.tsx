@@ -200,7 +200,11 @@ export function WorkspaceApp({
           if (doc.activeElement === filterRef.current) {
             setFilter('');
             filterRef.current?.blur();
+            return;
           }
+          // Out of the sidebar and back to the document, so Space and
+          // PageDown scroll again instead of driving the tree.
+          if (doc.activeElement?.closest('[role="tree"]')) scroller.current?.focus();
         },
       }),
       [doc, setFilter, activeId, closeTab],
@@ -350,7 +354,9 @@ export function WorkspaceApp({
               onClose={closeTab}
             />
 
-            <main class="mw-main" id="mw-main" ref={scroller}>
+            {/* tabIndex so the skip link actually moves focus here; a
+                plain <main> is not focusable. */}
+            <main class="mw-main" id="mw-main" tabIndex={-1} ref={scroller}>
               {error?.code === 'file-access-denied' ? (
                 <FileAccessPanel onRecheck={() => doc.location.reload()} />
               ) : error ? (

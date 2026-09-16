@@ -21,6 +21,7 @@ import { useEnrichment } from './hooks/useEnrichment';
 import { useSettingsSync } from './hooks/useSettingsSync';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useScrollMemory } from './hooks/useScrollMemory';
+import { useTreeFocusHandoff } from './hooks/useTreeFocusHandoff';
 
 interface ReaderAppProps {
   page: PageInfo;
@@ -78,6 +79,10 @@ export function ReaderApp({
   const tree = useFileTree(fileSource, treeRoot);
   const { reveal, setFilter } = tree;
 
+  // Opening a document reloads the page, so the tree cursor has to be
+  // carried across by hand or it is lost on every Enter.
+  const { restoreTreeFocus, handOffTreeFocus } = useTreeFocusHandoff(doc);
+
   // Restored only once the document is rendered, so scrollHeight is real.
   useScrollMemory(scroller, raw ? null : documentPath, loadScroll, saveScroll, true);
 
@@ -104,17 +109,19 @@ export function ReaderApp({
    */
   const openPath = useCallback(
     (path: string, fragment?: string | null) => {
+      handOffTreeFocus();
       doc.location.href = pathToFileUrl(path) + (fragment ? `#${fragment}` : '');
     },
-    [doc],
+    [doc, handOffTreeFocus],
   );
 
   /** Opening a folder navigates to its listing, which re-roots this tab. */
   const openFolder = useCallback(
     (directory: string) => {
+      handOffTreeFocus();
       doc.location.href = `${pathToFileUrl(directory.replace(/\/+$/, ''))}/`;
     },
-    [doc],
+    [doc, handOffTreeFocus],
   );
 
   useKeyboardShortcuts(
@@ -132,7 +139,11 @@ export function ReaderApp({
           if (doc.activeElement === filterRef.current) {
             setFilter('');
             filterRef.current?.blur();
+            return;
           }
+          // Out of the sidebar and back to the document, so Space and
+          // PageDown scroll again instead of driving the tree.
+          if (doc.activeElement?.closest('[role="tree"]')) scroller.current?.focus();
         },
       }),
       [doc, setFilter],
@@ -199,6 +210,7 @@ export function ReaderApp({
           {fileSource ? (
             <FileTree
               filterRef={filterRef}
+              autoFocus={restoreTreeFocus}
               state={tree.state}
               options={treeOptions}
               onToggle={tree.toggle}
@@ -210,7 +222,9 @@ export function ReaderApp({
           )}
         </nav>
 
-        <main class="mw-main" id="mw-main" ref={scroller}>
+        {/* tabIndex so the skip link and Escape can both land here: a
+            plain <main> is not focusable and focus would stay behind. */}
+        <main class="mw-main" id="mw-main" tabIndex={-1} ref={scroller}>
           <DocumentView
             result={result}
             source={source}

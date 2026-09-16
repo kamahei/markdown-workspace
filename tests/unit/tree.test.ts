@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   ancestorsOf,
   createTreeState,
+  firstChildIndex,
   flattenTree,
   indexOfPath,
+  parentIndex,
   pendingLoads,
   visibleWindow,
   type TreeOptions,
@@ -287,5 +289,97 @@ describe('indexOfPath', () => {
     expect(indexOfPath(rows, '/r/b.md')).toBe(1);
     expect(indexOfPath(rows, '/r/zz.md')).toBe(-1);
     expect(indexOfPath(rows, null)).toBe(-1);
+  });
+});
+
+/**
+ * Hierarchy navigation for the arrow keys.
+ *
+ * Reported: pressing Right or Left moved the cursor up and down a row. The
+ * tree pattern treats them as movement through the hierarchy, not the list,
+ * and the flattened rows carry depth rather than parent links — so both of
+ * these have to derive the relationship from depth alone.
+ */
+describe('parentIndex', () => {
+  const rows = () => {
+    const state = stateWith({
+      '/r': [dir('/r', 'docs'), file('/r', 'README.md')],
+      '/r/docs': [dir('/r/docs', 'api'), file('/r/docs', 'guide.md')],
+      '/r/docs/api': [file('/r/docs/api', 'rest.md')],
+    });
+    state.expanded.add('/r/docs');
+    state.expanded.add('/r/docs/api');
+    return flattenTree(state, OPTIONS);
+  };
+
+  it('finds the containing folder of a nested file', () => {
+    const list = rows();
+    // docs, api, rest.md, guide.md, README.md
+    expect(list.map((r) => r.name)).toEqual([
+      'docs',
+      'api',
+      'rest.md',
+      'guide.md',
+      'README.md',
+    ]);
+    expect(parentIndex(list, 2)).toBe(1); // rest.md -> api
+    expect(parentIndex(list, 3)).toBe(0); // guide.md -> docs
+  });
+
+  it('skips over siblings rather than stopping at the row above', () => {
+    // guide.md sits directly below rest.md, which is deeper. The parent is
+    // docs, not the adjacent row.
+    const list = rows();
+    expect(parentIndex(list, 3)).toBe(0);
+  });
+
+  it('has no parent at the top level', () => {
+    const list = rows();
+    expect(parentIndex(list, 0)).toBe(-1);
+    expect(parentIndex(list, 4)).toBe(-1);
+  });
+
+  it('is -1 for a row that does not exist', () => {
+    expect(parentIndex(rows(), 99)).toBe(-1);
+    expect(parentIndex([], 0)).toBe(-1);
+  });
+});
+
+describe('firstChildIndex', () => {
+  it('is the next row for an expanded directory with children', () => {
+    const state = stateWith({
+      '/r': [dir('/r', 'docs'), file('/r', 'README.md')],
+      '/r/docs': [file('/r/docs', 'guide.md')],
+    });
+    state.expanded.add('/r/docs');
+    const rows = flattenTree(state, OPTIONS);
+    expect(firstChildIndex(rows, 0)).toBe(1);
+  });
+
+  it('is -1 for a collapsed directory', () => {
+    const state = stateWith({
+      '/r': [dir('/r', 'docs')],
+      '/r/docs': [file('/r/docs', 'guide.md')],
+    });
+    const rows = flattenTree(state, OPTIONS);
+    expect(firstChildIndex(rows, 0)).toBe(-1);
+  });
+
+  it('is -1 for an expanded but empty directory', () => {
+    // The next row is a sibling, not a child, and moving onto it would look
+    // like the cursor had jumped out of the folder.
+    const state = stateWith({
+      '/r': [dir('/r', 'empty'), file('/r', 'README.md')],
+      '/r/empty': [],
+    });
+    state.expanded.add('/r/empty');
+    const rows = flattenTree(state, OPTIONS);
+    expect(rows.map((r) => r.name)).toEqual(['empty', 'README.md']);
+    expect(firstChildIndex(rows, 0)).toBe(-1);
+  });
+
+  it('is -1 for a file', () => {
+    const state = stateWith({ '/r': [file('/r', 'README.md')] });
+    expect(firstChildIndex(flattenTree(state, OPTIONS), 0)).toBe(-1);
   });
 });

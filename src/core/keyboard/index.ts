@@ -116,7 +116,8 @@ export function shortcutList(platform: 'mac' | 'other' = 'other'): ShortcutDescr
     { keys: 'Alt+W', description: 'Close the active tab (workspace)' },
     { keys: 'Esc', description: 'Clear the filter' },
     { keys: '↑ ↓', description: 'Move through the file tree' },
-    { keys: '→ ←', description: 'Expand or collapse a folder' },
+    { keys: '→', description: 'Open a folder, or step into it' },
+    { keys: '←', description: 'Close a folder, or go to the one above' },
     { keys: 'Enter', description: 'Open the selected file' },
     { keys: 'Home / End', description: 'Jump to the first or last file' },
   ];

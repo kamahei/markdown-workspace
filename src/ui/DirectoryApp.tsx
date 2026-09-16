@@ -11,6 +11,7 @@ import { FileAccessPanel, ErrorPanel } from './components/States';
 import { useFileTree } from './hooks/useFileTree';
 import { useSettingsSync } from './hooks/useSettingsSync';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { useTreeFocusHandoff } from './hooks/useTreeFocusHandoff';
 
 interface DirectoryAppProps {
   page: PageInfo;
@@ -52,6 +53,7 @@ export function DirectoryApp({
   const directory = page.directory ?? '/';
   const tree = useFileTree(fileSource, directory);
   const { setFilter } = tree;
+  const { handOffTreeFocus } = useTreeFocusHandoff(doc);
 
   useEffect(() => {
     applyTheme(doc.documentElement, settings.theme);
@@ -70,9 +72,10 @@ export function DirectoryApp({
 
   const openPath = useCallback(
     (path: string) => {
+      handOffTreeFocus();
       doc.location.href = pathToFileUrl(path);
     },
-    [doc],
+    [doc, handOffTreeFocus],
   );
 
   useKeyboardShortcuts(
@@ -145,12 +148,16 @@ export function DirectoryApp({
           <SidebarHeader
             root={directory}
             onNavigateUp={(parent) => {
+              handOffTreeFocus();
               doc.location.href = `${pathToFileUrl(parent.replace(/\/+$/, ''))}/`;
             }}
           />
           {fileSource ? (
             <FileTree
               filterRef={filterRef}
+              // The file list is the whole point of this page: there is no
+              // document to read, so the keyboard starts in the tree.
+              autoFocus
               state={tree.state}
               options={treeOptions}
               onToggle={tree.toggle}
@@ -160,7 +167,9 @@ export function DirectoryApp({
           ) : null}
         </nav>
 
-        <main class="mw-main" id="mw-main">
+        {/* tabIndex so the skip link actually moves focus here; a plain
+            <main> is not focusable and the link would only scroll. */}
+        <main class="mw-main" id="mw-main" tabIndex={-1}>
           {accessError === 'file-access-denied' ? (
             <FileAccessPanel onRecheck={recheck} checking={checking} />
           ) : accessError ? (
