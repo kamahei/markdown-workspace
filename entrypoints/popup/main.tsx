@@ -1,6 +1,7 @@
 import { render } from 'preact';
 import { useCallback, useEffect, useState } from 'preact/hooks';
 import { applyTheme, migrateSettings, nextTheme, type Settings } from '@core/settings';
+import { normalizePattern } from '@core/origins';
 import { send } from '../../src/platform/messaging';
 
 import '@ui/styles/theme.css';
@@ -13,6 +14,7 @@ function Popup({ initial }: { initial: Settings }) {
   const [origin, setOrigin] = useState<string | null>(null);
   const [fileAccess, setFileAccess] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
     void send({ type: 'checkFileAccess' }).then((r) => setFileAccess(r.granted));
@@ -23,7 +25,11 @@ function Popup({ initial }: { initial: Settings }) {
       try {
         const parsed = new URL(url);
         if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
-          setOrigin(`${parsed.origin}/*`);
+          // `parsed.origin` carries the port on a non-default one, and a
+          // Chrome match pattern has no concept of a port. Normalizing here
+          // means the popup and the options page agree on what an origin is.
+          const normalized = normalizePattern(parsed.origin);
+          if (normalized.ok) setOrigin(normalized.pattern);
         }
       } catch {
         // A tab with no parseable URL simply offers no origin action.
@@ -42,14 +48,36 @@ function Popup({ initial }: { initial: Settings }) {
     void send({ type: 'saveSettings', settings: updated });
   }, [settings]);
 
+  /**
+   * Allows or stops this site, asking Chrome from the click itself.
+   *
+   * `chrome.permissions.request` is only allowed during a user gesture. The
+   * options page had the same shape and failed silently for exactly this
+   * reason -- the request has to happen here, not in the worker the message
+   * goes to.
+   */
   const toggleOrigin = useCallback(async () => {
     if (!origin) return;
     setBusy(true);
+    setMessage(null);
     try {
-      const result = allowed
-        ? await send({ type: 'removeOrigin', pattern: origin })
-        : await send({ type: 'addOrigin', pattern: origin });
+      if (allowed) {
+        const result = await send({ type: 'removeOrigin', pattern: origin });
+        setSettings(result.settings);
+        return;
+      }
+
+      const granted = await chrome.permissions.request({ origins: [origin] });
+      if (!granted) {
+        setMessage('Chrome did not grant access to this site.');
+        return;
+      }
+
+      const result = await send({ type: 'addOrigin', pattern: origin });
       setSettings(result.settings);
+      if (!result.granted) setMessage('That site was allowed but could not be saved.');
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'That site could not be added.');
     } finally {
       setBusy(false);
     }
@@ -99,6 +127,12 @@ function Popup({ initial }: { initial: Settings }) {
         <strong>Settings</strong>
         <span>Themes, rendering, websites</span>
       </button>
+
+      {message ? (
+        <div class="mw-popup-alert" role="alert">
+          {message}
+        </div>
+      ) : null}
 
       {fileAccess === false ? (
         <div class="mw-popup-alert" role="alert">

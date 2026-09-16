@@ -76,7 +76,16 @@ test.describe('options page (FR-26)', () => {
 
     await page.getByLabel('Hidden folders').fill('vendor\ntmp');
     await page.getByLabel('Hidden folders').blur();
-    await expect.poll(excluded).toEqual(['vendor', 'tmp']);
+
+    // If the save fails the page says so, and that message is far more useful
+    // than "expected [vendor, tmp], received the defaults".
+    const alerts = page.getByRole('alert');
+    await expect
+      .poll(async () => ({
+        stored: await excluded(),
+        alert: (await alerts.count()) ? await alerts.first().innerText() : null,
+      }))
+      .toMatchObject({ stored: ['vendor', 'tmp'] });
 
     await page.getByRole('button', { name: 'Restore defaults' }).click();
     await expect.poll(excluded).toContain('node_modules');
@@ -170,6 +179,44 @@ test.describe('popup (FR-25)', () => {
     await expect(page.getByRole('button', { name: /Open Workspace/ })).toBeVisible();
     await expect(page.getByRole('button', { name: /^Settings/ })).toBeVisible();
     await expect(page.getByRole('button', { name: /^Theme/ })).toBeVisible();
+  });
+
+  test('asks Chrome from the popup, for a pattern without a port', async ({
+    context,
+    extensionId,
+  }) => {
+    /*
+     * The popup offers the same action as the options page and had the same
+     * defect: it messaged the worker, which cannot request a permission.
+     * Fixing only the options page would have left this one broken with no
+     * message at all -- it showed nothing either way.
+     *
+     * The origin also has to be normalized here. `location.origin` carries
+     * the port on a non-default one and a Chrome match pattern has none, so
+     * the popup and the options page have to agree on what an origin is.
+     */
+    const page = await context.newPage();
+    await page.addInitScript(() => {
+      const asked: string[] = [];
+      (window as unknown as { __asked: string[] }).__asked = asked;
+      chrome.permissions.request = ((perms: { origins?: string[] }) => {
+        asked.push(...(perms.origins ?? []));
+        return Promise.resolve(true);
+      }) as typeof chrome.permissions.request;
+      chrome.tabs.query = (() =>
+        Promise.resolve([
+          { url: 'http://127.0.0.1:8788/doc.md' },
+        ])) as unknown as typeof chrome.tabs.query;
+    });
+    await page.goto(`chrome-extension://${extensionId}/popup.html`);
+
+    await page.getByText('Render Markdown on this site').click();
+
+    await expect
+      .poll(() =>
+        page.evaluate(() => (window as unknown as { __asked: string[] }).__asked),
+      )
+      .toEqual(['http://127.0.0.1/*']);
   });
 
   test('cycles the theme and persists it', async ({ context, extensionId }) => {
@@ -277,7 +324,7 @@ test.describe('remote Markdown (FR-24, architecture C5, Q14)', () => {
     await page.addInitScript(() => {
       const asked: string[] = [];
       (window as unknown as { __asked: string[] }).__asked = asked;
-      chrome.permissions.request = ((perms: chrome.permissions.Permissions) => {
+      chrome.permissions.request = ((perms: { origins?: string[] }) => {
         asked.push(...(perms.origins ?? []));
         return Promise.resolve(true);
       }) as typeof chrome.permissions.request;

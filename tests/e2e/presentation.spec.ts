@@ -264,8 +264,17 @@ test.describe('without a pointer (checklist 6)', () => {
     // Into the filter and back out to the list, which is the entry point the
     // options page advertises. The filter matches loaded entries, and docs/
     // is collapsed on arrival, so this filters on what is actually there.
+    // Each step waits for the state it depends on. Typing into a field that
+    // has not taken focus yet, or arrowing into a list still re-rendering
+    // under the filter, made this fail about one run in ten.
     await page.keyboard.press('/');
+    const filter = page.getByLabel('Filter files by name');
+    await expect(filter).toBeFocused();
+
     await page.keyboard.type('doc');
+    await expect(filter).toHaveValue('doc');
+    await expect(page.locator('[role="treeitem"]', { hasText: 'docs' })).toBeVisible();
+
     await page.keyboard.press('ArrowDown');
     await expect
       .poll(() => page.evaluate(() => document.activeElement?.getAttribute('role')))
