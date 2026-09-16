@@ -6,14 +6,26 @@
  * adjusted in one place and every size stays consistent. Rasterizes with 4x
  * supersampling; a 16px icon drawn without antialiasing looks broken.
  *
- * Output: public/icon/{16,32,48,128}.png
+ * Output: public/icon/{16,32,48,128}.png, and the Chrome Web Store icon in
+ * store-assets/.
+ *
+ * The store icon is the same mark on a 128 canvas with the artwork inset,
+ * which is what the store's image guidance asks for: it draws its own frame
+ * around what you supply, and a full-bleed square gets its corners clipped.
+ * The extension icons stay full-bleed, because Chrome frames those itself.
  */
 import { mkdir, writeFile } from 'node:fs/promises';
 import { deflateSync } from 'node:zlib';
 
 const SIZES = [16, 32, 48, 128];
 const OUT_DIR = 'public/icon';
+const STORE_DIR = 'store-assets';
 const SUPERSAMPLE = 4;
+
+/** Transparent margin, as a fraction of the canvas. */
+const EXTENSION_INSET = 0.02;
+/** 16px of 128, the padding the store's guidance describes. */
+const STORE_INSET = 16 / 128;
 
 /** Accent blue, matching --mw-accent in the light theme. */
 const BG = [31, 111, 235];
@@ -74,28 +86,41 @@ function encodePng(width, height, rgba) {
 /**
  * Coverage of the icon shape at a normalized point, 0..1 across the icon.
  *
- * The mark is a rounded square with a downward chevron over a baseline bar:
- * a document that reads downward. Deliberately chunky, because the smallest
- * size it has to survive is 16 pixels.
+ * A sidebar beside lines of text: the one thing this extension does that a
+ * single-file viewer does not. The first mark was a downward chevron over a
+ * bar, which at any size read as a download arrow -- the wrong verb entirely
+ * for something that renders what you already have.
+ *
+ * Deliberately chunky, because the smallest size it has to survive is 16
+ * pixels: two text lines rather than three, and a sidebar wide enough to
+ * stay a shape rather than becoming a hairline.
+ *
+ * `inset` is the transparent margin. Zero for the extension icons, which
+ * Chrome frames itself; the store icon asks for artwork inside a 128 canvas,
+ * so it renders the same mark smaller rather than a different mark.
  */
-function shapeAt(x, y) {
-  // Rounded-square background.
-  const r = 0.22;
-  const inside = roundedRect(x, y, 0.02, 0.02, 0.96, 0.96, r);
-  if (!inside) return null;
+function shapeAt(x, y, inset = EXTENSION_INSET) {
+  const span = 1 - inset * 2;
+  const r = 0.22 * span;
+  if (!roundedRect(x, y, inset, inset, span, span, r)) return null;
 
-  // Chevron: two strokes meeting at a point.
-  const chevron =
-    stroke(x, y, 0.26, 0.4, 0.5, 0.64, 0.115) ||
-    stroke(x, y, 0.74, 0.4, 0.5, 0.64, 0.115);
+  // Everything below is in 0..1 of the mark, then mapped onto the canvas.
+  const u = (x - inset) / span;
+  const v = (y - inset) / span;
 
-  // Vertical stem above the chevron's meeting point.
-  const stem = stroke(x, y, 0.5, 0.24, 0.5, 0.6, 0.115);
+  // Sidebar: a full-height column on the left.
+  const sidebar = u >= 0.18 && u <= 0.34 && v >= 0.22 && v <= 0.78;
 
-  // Baseline bar.
-  const bar = x >= 0.26 && x <= 0.74 && y >= 0.72 && y <= 0.81;
+  // Text lines: the document beside it. Two, of different lengths.
+  //
+  // Sized against the 16px grid rather than by eye. At that size the mark
+  // has about twelve usable pixels: a third line, or thinner ones, drop out
+  // entirely at the rounding -- which is how a previous attempt rendered as
+  // two disconnected dashes.
+  const line = (top, right) => u >= 0.44 && u <= right && v >= top && v <= top + 0.16;
+  const text = line(0.26, 0.82) || line(0.58, 0.68);
 
-  return chevron || stem || bar ? FG : BG;
+  return sidebar || text ? FG : BG;
 }
 
 function roundedRect(px, py, x, y, w, h, r) {
@@ -109,21 +134,7 @@ function roundedRect(px, py, x, y, w, h, r) {
   );
 }
 
-/** True when the point lies within `half` of the segment (ax,ay)-(bx,by). */
-function stroke(px, py, ax, ay, bx, by, half) {
-  const dx = bx - ax;
-  const dy = by - ay;
-  const lengthSq = dx * dx + dy * dy;
-  const t =
-    lengthSq === 0
-      ? 0
-      : Math.min(Math.max(((px - ax) * dx + (py - ay) * dy) / lengthSq, 0), 1);
-  const nx = ax + t * dx;
-  const ny = ay + t * dy;
-  return (px - nx) ** 2 + (py - ny) ** 2 <= half * half;
-}
-
-function renderIcon(size) {
+function renderIcon(size, inset = EXTENSION_INSET) {
   const rgba = Buffer.alloc(size * size * 4);
 
   for (let y = 0; y < size; y += 1) {
@@ -137,7 +148,7 @@ function renderIcon(size) {
         for (let sx = 0; sx < SUPERSAMPLE; sx += 1) {
           const nx = (x + (sx + 0.5) / SUPERSAMPLE) / size;
           const ny = (y + (sy + 0.5) / SUPERSAMPLE) / size;
-          const colour = shapeAt(nx, ny);
+          const colour = shapeAt(nx, ny, inset);
           if (!colour) continue;
           r += colour[0];
           g += colour[1];
@@ -170,7 +181,12 @@ async function main() {
     console.log(`  ${OUT_DIR}/${size}.png  ${png.length} bytes`);
   }
 
-  console.log(`Generated ${SIZES.length} icons.`);
+  await mkdir(STORE_DIR, { recursive: true });
+  const store = renderIcon(128, STORE_INSET);
+  await writeFile(`${STORE_DIR}/store-icon-128.png`, store);
+  console.log(`  ${STORE_DIR}/store-icon-128.png  ${store.length} bytes`);
+
+  console.log(`Generated ${SIZES.length} icons and the store icon.`);
 }
 
 main().catch((err) => {

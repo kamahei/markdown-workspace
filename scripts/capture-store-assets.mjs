@@ -167,19 +167,27 @@ function promoHtml({ width, height, headline, sub, scale }) {
   }
   .copy { min-width: 0; }
   h1 {
-    font-size: ${44 * scale}px; line-height: 1.12; font-weight: 650;
-    letter-spacing: -.02em; margin-bottom: ${14 * scale}px;
+    /* Sized so the headline sets in two lines at 440px. Three lines pushed
+       the supporting sentence to the bottom edge and left the tile looking
+       like a wall of text at the size the store actually shows it. */
+    font-size: ${38 * scale}px; line-height: 1.15; font-weight: 650;
+    letter-spacing: -.02em; margin-bottom: ${13 * scale}px;
   }
-  p { font-size: ${21 * scale}px; line-height: 1.45; color: rgba(255,255,255,.88); }
+  p { font-size: ${19 * scale}px; line-height: 1.45; color: rgba(255,255,255,.88); }
   .name {
     margin-top: ${18 * scale}px; font-size: ${15 * scale}px;
     letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.7);
   }
 </style></head><body>
   <div class="mark">
-    <svg width="${76 * scale}" height="${76 * scale}" viewBox="0 0 24 24" fill="none"
-         stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M12 3v11"/><path d="M6.5 9.5 12 15l5.5-5.5"/><path d="M5 19.5h14"/>
+    <!-- The same mark as the extension icon: a sidebar beside lines of text.
+         Transcribed from the geometry in scripts/build-icons.mjs, mapped onto
+         a 24-unit box, and has to be changed with it. It used to be a
+         downward chevron over a bar, which read as a download arrow. -->
+    <svg width="${68 * scale}" height="${68 * scale}" viewBox="0 0 24 24" fill="#fff">
+      <rect x="4.3" y="5.3" width="3.9" height="13.4" rx="0.9"/>
+      <rect x="10.6" y="6.2" width="9.1" height="3.8" rx="0.9"/>
+      <rect x="10.6" y="13.9" width="5.8" height="3.8" rx="0.9"/>
     </svg>
   </div>
   <div class="copy">
@@ -206,7 +214,17 @@ async function capturePromo(context, name, spec) {
 // --- Main -----------------------------------------------------------------
 
 async function main() {
-  await rm(OUT, { recursive: true, force: true });
+  /*
+   * Clears only what this script produces.
+   *
+   * It used to remove the whole directory, which took the store icon
+   * `build-icons.mjs` writes there with it -- a script deleting a sibling's
+   * output, and invisible until the icon went missing from an upload.
+   */
+  for (const locale of LOCALES) {
+    await rm(`${OUT}/${locale.id}`, { recursive: true, force: true });
+  }
+  await rm(`${OUT}/promo-440x280.png`, { force: true });
   await mkdir(OUT, { recursive: true });
 
   const { context, profile } = await launch();
@@ -238,13 +256,21 @@ async function main() {
       'en/                five screenshots for the default (English) listing',
       'ja/                five screenshots for the Japanese listing',
       'promo-440x280.png  small promo tile, shared by both listings',
+      'store-icon-128.png the store icon, written by scripts/build-icons.mjs',
       '',
       'Screenshots are 1280x800 at 2x device scale. Five per locale is the',
       'store maximum. The content comes from samples/ and samples-ja/, which',
       'are real documentation rather than placeholder text.',
       '',
-      'These are build output, not source. Edit the sample documents or the',
-      'promo layout in scripts/capture-store-assets.mjs and regenerate.',
+      'The store icon is the extension mark on a 128 canvas with the artwork',
+      'inset by 16px, which is the padding the store image guidance',
+      'describes. The extension icons stay full-bleed, because Chrome frames',
+      'those itself. If the dashboard would rather have a full-bleed store',
+      'icon, upload public/icon/128.png -- the same mark without the margin.',
+      '',
+      'These are build output, not source. Edit the sample documents, the',
+      'mark in scripts/build-icons.mjs, or the promo layout in',
+      'scripts/capture-store-assets.mjs, and regenerate.',
       '',
     ].join('\n'),
     'utf8',
