@@ -153,6 +153,16 @@ export const RULE_ID_BASE = 1000;
  * file, so no page exists and no content script runs. Rewriting the header to
  * `text/plain` restores the situation the reader already handles.
  *
+ * **This rule currently does nothing.** It fires only when the response
+ * already carries a Markdown content type, and browsers display those as text
+ * pages rather than downloading them -- measured on Chrome 153, Edge 153 and
+ * both Chromium builds Playwright ships. The responses that do download,
+ * `application/octet-stream` and anything with `Content-Disposition:
+ * attachment`, are excluded by this rule's own condition. Remote rendering
+ * works because the content script is registered for the approved origin.
+ * Open question Q14 holds the decision: drop the permission, widen the rule,
+ * or keep it as insurance for older Chrome and stop claiming anything for it.
+ *
  * Scoped to `main_frame` only: this must never touch a subresource a page
  * fetches for its own purposes.
  */

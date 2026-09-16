@@ -15,10 +15,19 @@ const EXTENSION_PATH = resolve('.output/chrome-mv3');
  * Which browser to drive.
  *
  * Defaults to the Chromium that Playwright installs, which is what CI has.
- * `MW_BROWSER_CHANNEL=msedge` or `=chrome` runs the same suite against an
- * installed browser instead, which is how the "other Chromium browsers" line
- * in the manual checklist gets answered by running it rather than by
- * assuming a shared engine means shared behaviour.
+ * `MW_BROWSER_CHANNEL=msedge` runs the same suite against installed Edge,
+ * which is how the "other Chromium browsers" line in the release checklist
+ * gets answered by running it rather than by assuming a shared engine means
+ * shared behaviour.
+ *
+ * **Not `chrome`.** Google Chrome stable no longer honours
+ * `--load-extension`: it launches, the extension never loads, and every test
+ * then waits for a service worker that will never arrive. Measured on Chrome
+ * 153, where neither `--enable-unsafe-extension-debugging` nor
+ * `--disable-features=DisableLoadExtensionCommandLineSwitch` brings it back.
+ * Edge 153 still honours it. `assertExtensionLoaded` below turns that into
+ * one clear failure rather than a suite-long timeout — it cost an hour the
+ * first time.
  */
 const CHANNEL = process.env.MW_BROWSER_CHANNEL ?? 'chromium';
 
@@ -82,7 +91,7 @@ export const test = base.extend<Fixtures>({
 
   serviceWorker: async ({ context }, use) => {
     let [worker] = context.serviceWorkers();
-    worker ??= await context.waitForEvent('serviceworker');
+    worker ??= await waitForExtension(context);
     await use(worker);
   },
 
@@ -128,3 +137,31 @@ export const test = base.extend<Fixtures>({
 });
 
 export const expect = test.expect;
+
+/**
+ * Waits for the extension's service worker, and says why when it never comes.
+ *
+ * The bare `waitForEvent` version failed with "Target page, context or
+ * browser has been closed" once per test, which describes the symptom and
+ * not the cause.
+ */
+async function waitForExtension(context: BrowserContext): Promise<Worker> {
+  const worker = await Promise.race([
+    context.waitForEvent('serviceworker'),
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), 15_000)),
+  ]);
+
+  if (worker) return worker;
+
+  throw new Error(
+    `The extension did not load in "${CHANNEL}".
+
+` +
+      (CHANNEL === 'chrome'
+        ? 'Google Chrome stable no longer honours --load-extension, so it ' +
+          'launches without the extension and every test then waits for a ' +
+          'service worker that never arrives. Use the default channel, or ' +
+          'MW_BROWSER_CHANNEL=msedge.'
+        : `Check that ${EXTENSION_PATH} exists and is current: run "pnpm build".`),
+  );
+}

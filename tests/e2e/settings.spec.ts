@@ -5,9 +5,10 @@ import { expect, test } from './fixtures';
 /**
  * Settings, onboarding and the opt-in remote path.
  *
- * The remote test runs against a local server that sends
- * `Content-Type: text/markdown`, which is the exact condition that makes
- * Chrome download a file instead of showing it (architecture.md C5).
+ * The remote tests run against a local server that sends
+ * `Content-Type: text/markdown`. Architecture note C5 called that the exact
+ * condition that makes Chrome download a file instead of showing it; measured
+ * on 2026-09-16, it is not, and C5 now records what browsers actually do.
  */
 
 test.describe('options page (FR-26)', () => {
@@ -183,14 +184,14 @@ test.describe('popup (FR-25)', () => {
   });
 });
 
-test.describe('remote Markdown (FR-24, architecture C5)', () => {
+test.describe('remote Markdown (FR-24, architecture C5, Q14)', () => {
   let server: Server;
   let port = 0;
 
   test.beforeAll(async () => {
     server = createServer((req, res) => {
       if (req.url === '/doc.md') {
-        // The exact condition that makes Chrome download instead of display.
+        // The content type the opt-in origin feature was designed around.
         res.writeHead(200, { 'Content-Type': 'text/markdown; charset=utf-8' });
         res.end('# Remote Doc\n\nServed as text/markdown.\n');
         return;
@@ -208,18 +209,31 @@ test.describe('remote Markdown (FR-24, architecture C5)', () => {
 
   test('is ignored before the origin is added', async ({ context }) => {
     const page = await context.newPage();
-
-    // Chrome downloads it, so the navigation never produces a rendered page.
-    const download = page.waitForEvent('download', { timeout: 5000 }).catch(() => null);
     await page.goto(`http://127.0.0.1:${port}/doc.md`).catch(() => {});
 
-    const result = await download;
-    if (result) {
-      expect(result.suggestedFilename()).toContain('doc');
-    } else {
-      // If Chrome rendered it as text instead, it must at least not be ours.
-      await expect(page.locator('.mw-root')).toHaveCount(0);
-    }
+    // Whatever the browser does with the response, the extension must not
+    // have touched it: no origin has been approved.
+    await expect(page.locator('.mw-root')).toHaveCount(0);
+  });
+
+  test('a Markdown content type is displayed, not downloaded', async ({ context }) => {
+    /*
+     * Architecture note C5 said the opposite, from documentation rather than
+     * from a browser, and the whole header-rewriting feature was built on it.
+     * Measured on Chrome 153, Edge 153 and both Chromium builds Playwright
+     * ships: a Markdown type renders as a text page, which means a content
+     * script runs on it and no rewrite is needed. See open question Q14.
+     *
+     * This asserts the measurement rather than the design, so the day a
+     * browser changes its mind the test says so instead of the feature
+     * quietly not working.
+     */
+    const page = await context.newPage();
+    const download = page.waitForEvent('download', { timeout: 3000 }).catch(() => null);
+    await page.goto(`http://127.0.0.1:${port}/doc.md`).catch(() => {});
+
+    expect(await download, 'a Markdown type is not a download').toBeNull();
+    expect(await page.evaluate(() => document.contentType)).toMatch(/markdown/);
   });
 
   test('builds a header rule scoped to the origin and the main frame', async ({
