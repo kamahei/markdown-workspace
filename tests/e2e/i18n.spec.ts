@@ -1,4 +1,4 @@
-import { expect, test } from './fixtures';
+import { expect, test, UI_LANGUAGE } from './fixtures';
 
 /**
  * The interface in Japanese, driven through a real browser.
@@ -83,6 +83,42 @@ test.describe('translation', () => {
     // The substitution has to survive translation, or the label renders with
     // a hole in it.
     expect(japanese.theme).toContain('$1');
+  });
+
+  test('the sidebar tabs are in the language the browser is in', async ({
+    context,
+    makeTree,
+    fileUrl,
+    hasFileAccess,
+  }) => {
+    test.skip(!hasFileAccess, 'needs file:// access');
+
+    // Written in whichever language the suite is pinned to, because the
+    // point is that the tabs follow the browser rather than that one
+    // particular translation exists. The rest of the outline and search
+    // specs assert English, so this is the only place the Japanese
+    // rendering of the new panels is driven in a real browser.
+    const root = await makeTree({
+      'doc.md': ['# Title', 'Body text.', '## Section', 'More.'].join('\n\n'),
+    });
+    const page = await context.newPage();
+    await page.goto(fileUrl(`${root}/doc.md`));
+    await expect(page.locator('.mw-doc h1')).toBeVisible();
+
+    // From the fixture, not from chrome.i18n: this page is a file:// page,
+    // and chrome.i18n exists only on extension pages.
+    const expected = UI_LANGUAGE.startsWith('ja')
+      ? ['ファイル', 'アウトライン', '検索']
+      : ['Files', 'Outline', 'Search'];
+
+    await expect(page.getByRole('tab')).toHaveText(expected);
+
+    // And the panel behind a tab, not only its label.
+    await page.getByRole('tab', { name: expected[2] }).click();
+    const box = page.locator('.mw-search input[type="search"]');
+    const placeholder = await box.getAttribute('placeholder');
+    expect(placeholder).not.toMatch(/^search[A-Z]/);
+    expect((placeholder ?? '').length).toBeGreaterThan(0);
   });
 
   test('the options page renders in the language the browser is in', async ({
