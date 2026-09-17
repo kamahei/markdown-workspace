@@ -40,6 +40,11 @@ export const en = {
   untitledDocument: 'Document',
   loading: 'Loading…',
 
+  // --- Sidebar sections -------------------------------------------------
+  sidebarSections: 'Sidebar sections',
+  sidebarTabOutline: 'Outline',
+  sidebarTabSearch: 'Search',
+
   // --- File tree --------------------------------------------------------
   filterFilesPlaceholder: 'Filter files…',
   filterFilesLabel: 'Filter files by name',

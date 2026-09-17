@@ -14,6 +14,7 @@ import type { FileError, FileErrorCode } from '@core/messaging';
 import { Toolbar, ToolbarButton } from './components/Toolbar';
 import { DocumentView } from './components/DocumentView';
 import { FileTree } from './components/FileTree';
+import { SidebarPanels, type SidebarPanel } from './components/SidebarPanels';
 import { DropZone } from './components/DropZone';
 import { Tabs, type Tab } from './components/Tabs';
 import { ErrorPanel, FileAccessPanel, LoadingPane } from './components/States';
@@ -21,6 +22,7 @@ import { useFileTree } from './hooks/useFileTree';
 import { useSettingsSync } from './hooks/useSettingsSync';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useScrollMemory } from './hooks/useScrollMemory';
+import { useSidebarPanel } from './hooks/useSidebarPanel';
 import { useEnrichment } from './hooks/useEnrichment';
 import { t, themeKey } from './i18n';
 
@@ -96,6 +98,7 @@ export function WorkspaceApp({
   const [loading, setLoading] = useState(false);
   const [raw, setRaw] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(true);
+  const [sidebarPanel, setSidebarPanel] = useSidebarPanel(doc);
 
   const sanitizer = useMemo(() => createSanitizer(doc.defaultView!), [doc]);
   const enrichment = useEnrichment(sanitizer, settings, doc);
@@ -250,6 +253,30 @@ export function WorkspaceApp({
     [settings.fileBrowser],
   );
 
+  const panels: SidebarPanel[] = [
+    {
+      id: 'files',
+      label: t('filesNav'),
+      content: fileSource ? (
+        <>
+          {!fileSource.canPersist ? (
+            <p class="mw-sidebar-note">{t('snapshotFolderNote')}</p>
+          ) : null}
+          <FileTree
+            filterRef={filterRef}
+            state={tree.state}
+            options={treeOptions}
+            onToggle={tree.toggle}
+            onOpen={(path) => void openPath(path)}
+            onFilterChange={tree.setFilter}
+          />
+        </>
+      ) : (
+        <p class="mw-empty">{t('dropAFolderHere')}</p>
+      ),
+    },
+  ];
+
   const active = activeId ? documents.get(activeId) : null;
 
   // Keyed on the active tab, so switching tabs restores each document's
@@ -325,23 +352,12 @@ export function WorkspaceApp({
               </button>
             </div>
 
-            {fileSource ? (
-              <>
-                {!fileSource.canPersist ? (
-                  <p class="mw-sidebar-note">{t('snapshotFolderNote')}</p>
-                ) : null}
-                <FileTree
-                  filterRef={filterRef}
-                  state={tree.state}
-                  options={treeOptions}
-                  onToggle={tree.toggle}
-                  onOpen={(path) => void openPath(path)}
-                  onFilterChange={tree.setFilter}
-                />
-              </>
-            ) : (
-              <p class="mw-empty">{t('dropAFolderHere')}</p>
-            )}
+            <SidebarPanels
+              label={t('sidebarSections')}
+              panels={panels}
+              selected={sidebarPanel}
+              onSelect={setSidebarPanel}
+            />
 
             {recent.length > 0 ? (
               <div class="mw-recent">

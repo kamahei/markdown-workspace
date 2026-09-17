@@ -468,6 +468,64 @@
   color: var(--mw-fg);
 }
 
+/* --- Sidebar tabs ------------------------------------------------------- */
+
+.mw-sidebar-panels {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.mw-sidebar-tablist {
+  display: flex;
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--mw-border);
+}
+
+.mw-sidebar-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0.4rem 0.3rem;
+  border: 0;
+  /* The selected tab is marked by a bar drawn over this border, so the
+     unselected ones reserve the same space and nothing shifts by a pixel
+     when the selection moves. */
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--mw-fg-subtle);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.mw-sidebar-tab:hover {
+  color: var(--mw-fg);
+  background: var(--mw-bg-inset);
+}
+
+.mw-sidebar-tab[aria-selected='true'] {
+  color: var(--mw-fg);
+  border-bottom-color: var(--mw-accent);
+}
+
+/* The panel is the flex child that scrolls; its contents size themselves. */
+.mw-sidebar-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.mw-sidebar-panel[hidden] {
+  display: none;
+}
+
 /* --- Folder landing pane ------------------------------------------------ */
 
 .mw-folder-title {

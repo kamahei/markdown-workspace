@@ -34,6 +34,11 @@ export const ja: Record<keyof typeof en, string> = {
   untitledDocument: 'ドキュメント',
   loading: '読み込み中…',
 
+  // --- Sidebar sections -------------------------------------------------
+  sidebarSections: 'サイドバーのセクション',
+  sidebarTabOutline: 'アウトライン',
+  sidebarTabSearch: '検索',
+
   // --- File tree --------------------------------------------------------
   filterFilesPlaceholder: 'ファイルを絞り込む…',
   filterFilesLabel: 'ファイル名で絞り込む',

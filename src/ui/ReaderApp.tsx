@@ -15,6 +15,7 @@ import { pathToFileUrl } from '@core/fs/file-url-source';
 import { Breadcrumb, Toolbar, ToolbarButton } from './components/Toolbar';
 import { DocumentView } from './components/DocumentView';
 import { FileTree } from './components/FileTree';
+import { SidebarPanels, type SidebarPanel } from './components/SidebarPanels';
 import { SidebarHeader } from './components/SidebarHeader';
 import { useFileTree } from './hooks/useFileTree';
 import { useEnrichment } from './hooks/useEnrichment';
@@ -22,6 +23,7 @@ import { useSettingsSync } from './hooks/useSettingsSync';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useScrollMemory } from './hooks/useScrollMemory';
 import { useTreeFocusHandoff } from './hooks/useTreeFocusHandoff';
+import { useSidebarPanel } from './hooks/useSidebarPanel';
 import { t, themeKey } from './i18n';
 
 interface ReaderAppProps {
@@ -84,6 +86,9 @@ export function ReaderApp({
   // Opening a document reloads the page, so the tree cursor has to be
   // carried across by hand or it is lost on every Enter.
   const { restoreTreeFocus, handOffTreeFocus } = useTreeFocusHandoff(doc);
+
+  // And for the same reason, so does the chosen sidebar tab.
+  const [sidebarPanel, setSidebarPanel] = useSidebarPanel(doc);
 
   // Restored only once the document is rendered, so scrollHeight is real.
   useScrollMemory(scroller, raw ? null : documentPath, loadScroll, saveScroll, true);
@@ -169,6 +174,26 @@ export function ReaderApp({
     [settings.fileBrowser],
   );
 
+  const panels: SidebarPanel[] = [
+    {
+      id: 'files',
+      label: t('filesNav'),
+      content: fileSource ? (
+        <FileTree
+          filterRef={filterRef}
+          autoFocus={restoreTreeFocus}
+          state={tree.state}
+          options={treeOptions}
+          onToggle={tree.toggle}
+          onOpen={openPath}
+          onFilterChange={tree.setFilter}
+        />
+      ) : (
+        <p class="mw-empty">{t('folderCouldNotBeRead')}</p>
+      ),
+    },
+  ];
+
   return (
     <div class="mw-root">
       <a class="mw-skip-link" href="#mw-main">
@@ -217,19 +242,12 @@ export function ReaderApp({
       <div class="mw-body">
         <nav class="mw-sidebar" hidden={!sidebarVisible} aria-label={t('filesNav')}>
           <SidebarHeader root={treeRoot ?? ''} onNavigateUp={openFolder} />
-          {fileSource ? (
-            <FileTree
-              filterRef={filterRef}
-              autoFocus={restoreTreeFocus}
-              state={tree.state}
-              options={treeOptions}
-              onToggle={tree.toggle}
-              onOpen={openPath}
-              onFilterChange={tree.setFilter}
-            />
-          ) : (
-            <p class="mw-empty">{t('folderCouldNotBeRead')}</p>
-          )}
+          <SidebarPanels
+            label={t('sidebarSections')}
+            panels={panels}
+            selected={sidebarPanel}
+            onSelect={setSidebarPanel}
+          />
         </nav>
 
         {/* tabIndex so the skip link and Escape can both land here: a
