@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   repository does not mean reading node_modules.
 - The sidebar now holds more than the file tree: its contents are tabs, and
   which one you chose survives opening the next document.
+- The sidebar can be resized, by dragging its edge or with the arrow keys
+  once the handle has focus, and the width is remembered for this device.
+  The handle's styling had been in the stylesheet since the first release
+  with nothing behind it.
 
 ## [0.1.0] - 2026-09-16
 

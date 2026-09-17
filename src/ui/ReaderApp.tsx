@@ -11,8 +11,12 @@ import { createSanitizer } from '@core/sanitize';
 import {
   applyContentWidth,
   applyTheme,
+  clampSidebarWidth,
   nextTheme,
   renderOptionsFrom,
+  SIDEBAR_DEFAULT,
+  SIDEBAR_MAX,
+  SIDEBAR_MIN,
   type Settings,
 } from '@core/settings';
 import type { PageInfo } from '@core/reader/classify';
@@ -23,6 +27,7 @@ import { Breadcrumb, Toolbar, ToolbarButton } from './components/Toolbar';
 import { DocumentView } from './components/DocumentView';
 import { FileTree } from './components/FileTree';
 import { SidebarPanels, type SidebarPanel } from './components/SidebarPanels';
+import { SidebarResizer } from './components/SidebarResizer';
 import { Outline } from './components/Outline';
 import { SearchPanel } from './components/SearchPanel';
 import { SidebarHeader } from './components/SidebarHeader';
@@ -33,6 +38,7 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useScrollMemory } from './hooks/useScrollMemory';
 import { useTreeFocusHandoff } from './hooks/useTreeFocusHandoff';
 import { useSidebarPanel } from './hooks/useSidebarPanel';
+import { useSidebarWidth } from './hooks/useSidebarWidth';
 import { useActiveHeading } from './hooks/useActiveHeading';
 import { useFolderSearch } from './hooks/useFolderSearch';
 import { usePendingLine } from './hooks/usePendingLine';
@@ -58,6 +64,9 @@ interface ReaderAppProps {
   /** Reading position, persisted per document (FR-30). */
   loadScroll: (path: string) => Promise<number>;
   saveScroll: (path: string, ratio: number) => void;
+  /** Sidebar width, persisted per device (FR-30). */
+  loadSidebarWidth: () => Promise<number>;
+  saveSidebarWidth: (width: number) => void;
 }
 
 export function ReaderApp({
@@ -71,6 +80,8 @@ export function ReaderApp({
   onOpenWorkspace,
   loadScroll,
   saveScroll,
+  loadSidebarWidth,
+  saveSidebarWidth,
 }: ReaderAppProps) {
   // Settings come from the broadcast as well as from local edits, so a
   // change made in the options page reaches an open document without a
@@ -134,6 +145,14 @@ export function ReaderApp({
 
   // And for the same reason, so does the chosen sidebar tab.
   const [sidebarPanel, setSidebarPanel] = useSidebarPanel(doc);
+
+  const { width, setWidth, nudgeWidth } = useSidebarWidth(
+    doc,
+    loadSidebarWidth,
+    saveSidebarWidth,
+    clampSidebarWidth,
+    SIDEBAR_DEFAULT,
+  );
 
   const treeOptions = useMemo(
     () => ({
@@ -364,6 +383,16 @@ export function ReaderApp({
             onSelect={setSidebarPanel}
           />
         </nav>
+
+        {sidebarVisible ? (
+          <SidebarResizer
+            width={width}
+            min={SIDEBAR_MIN}
+            max={SIDEBAR_MAX}
+            onResize={setWidth}
+            onNudge={nudgeWidth}
+          />
+        ) : null}
 
         {/* tabIndex so the skip link and Escape can both land here: a
             plain <main> is not focusable and focus would stay behind. */}

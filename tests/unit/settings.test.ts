@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
+  clampSidebarWidth,
   defaultSettings,
   migrateSettings,
   nextTheme,
   normalizeSettings,
   renderOptionsFrom,
   resolveTheme,
+  SIDEBAR_DEFAULT,
+  SIDEBAR_MAX,
+  SIDEBAR_MIN,
   SETTINGS_SCHEMA_VERSION,
 } from '@core/settings';
 import {
@@ -243,5 +247,33 @@ describe('document state (FR-30)', () => {
 
   it('prunes nothing when under the limit', () => {
     expect(selectExpiredKeys([{ key: 'a', lastOpenedAt: 1 }], 10)).toEqual([]);
+  });
+});
+
+describe('sidebar width bounds', () => {
+  it('keeps a sensible width unchanged', () => {
+    expect(clampSidebarWidth(320)).toBe(320);
+  });
+
+  it('pulls anything outside the range back to the nearest bound', () => {
+    expect(clampSidebarWidth(10)).toBe(SIDEBAR_MIN);
+    expect(clampSidebarWidth(5000)).toBe(SIDEBAR_MAX);
+  });
+
+  it('rounds, because a width is a whole number of pixels', () => {
+    expect(clampSidebarWidth(260.4)).toBe(260);
+    expect(clampSidebarWidth(260.6)).toBe(261);
+  });
+
+  it('falls back on rubbish rather than producing it', () => {
+    // A stored value can be anything if the write was interrupted, and a
+    // NaN width collapses the sidebar to nothing with no way back.
+    expect(clampSidebarWidth(Number.NaN)).toBe(SIDEBAR_DEFAULT);
+    expect(clampSidebarWidth(Number.POSITIVE_INFINITY)).toBe(SIDEBAR_DEFAULT);
+  });
+
+  it('has a default inside its own bounds', () => {
+    expect(SIDEBAR_DEFAULT).toBeGreaterThanOrEqual(SIDEBAR_MIN);
+    expect(SIDEBAR_DEFAULT).toBeLessThanOrEqual(SIDEBAR_MAX);
   });
 });

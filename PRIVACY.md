@@ -25,12 +25,12 @@ uploaded.
 
 All storage is local to your browser:
 
-| Data                                                                       | Where                                                   | Why                                                                                                                            |
-| -------------------------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Your settings (theme, enabled features, allowed origins)                   | `chrome.storage.sync`                                   | So your preferences persist, and follow your Chrome profile if you have Chrome Sync enabled                                    |
-| Recently opened folders and their permission handles                       | `IndexedDB`                                             | So the workspace can reopen a folder without asking you to pick it again                                                       |
-| Where you had scrolled to in a document, and when you last opened it       | `chrome.storage.local`                                  | So documents reopen where you left off                                                                                         |
-| The folder a tab is browsing, and whether the file list had keyboard focus | `chrome.storage.session` and the tab's `sessionStorage` | So moving between documents keeps the sidebar and the cursor where you left them. Discarded when the tab or the browser closes |
+| Data                                                                                                | Where                                                   | Why                                                                                                                            |
+| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Your settings (theme, enabled features, allowed origins)                                            | `chrome.storage.sync`                                   | So your preferences persist, and follow your Chrome profile if you have Chrome Sync enabled                                    |
+| Recently opened folders and their permission handles                                                | `IndexedDB`                                             | So the workspace can reopen a folder without asking you to pick it again                                                       |
+| Where you had scrolled to in a document, when you last opened it, and how wide you made the sidebar | `chrome.storage.local`                                  | So documents reopen where you left off, and the sidebar stays the width you chose on this device                               |
+| The folder a tab is browsing, and whether the file list had keyboard focus                          | `chrome.storage.session` and the tab's `sessionStorage` | So moving between documents keeps the sidebar and the cursor where you left them. Discarded when the tab or the browser closes |
 
 If you use Chrome Sync, your **settings** sync between your own devices through
 Google's infrastructure under your own Google account. This is standard Chrome

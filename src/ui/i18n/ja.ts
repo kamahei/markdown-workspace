@@ -22,6 +22,7 @@ export const ja: Record<keyof typeof en, string> = {
   skipToContent: '本文へスキップ',
   filesNav: 'ファイル',
   toggleSidebar: 'サイドバーの表示切替',
+  resizeSidebar: 'サイドバーの幅を変更',
   reload: '再読み込み',
   reloadFromDisk: 'ディスクから再読み込み',
   themeIs: 'テーマ: $1',

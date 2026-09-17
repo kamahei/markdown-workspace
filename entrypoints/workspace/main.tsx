@@ -11,6 +11,7 @@ import {
 import { WorkspaceApp, type RecentEntry } from '@ui/WorkspaceApp';
 import { send } from '../../src/platform/messaging';
 import { loadScrollRatio, saveScrollRatio } from '../../src/platform/document-state';
+import { loadSidebarWidth, saveSidebarWidth } from '../../src/platform/layout-state';
 import {
   acquireFromDrop,
   acquireFromInput,
@@ -166,6 +167,8 @@ function Root({ initialSettings }: { initialSettings: Settings }) {
       dragAccepts={dragHasFolder}
       loadScroll={loadScrollRatio}
       saveScroll={saveScrollRatio}
+      loadSidebarWidth={loadSidebarWidth}
+      saveSidebarWidth={saveSidebarWidth}
     />
   );
 }

@@ -12,8 +12,12 @@ import { createSanitizer } from '@core/sanitize';
 import {
   applyContentWidth,
   applyTheme,
+  clampSidebarWidth,
   nextTheme,
   renderOptionsFrom,
+  SIDEBAR_DEFAULT,
+  SIDEBAR_MAX,
+  SIDEBAR_MIN,
   type Settings,
 } from '@core/settings';
 import { basename, FileSourceError, type FileSource } from '@core/fs/types';
@@ -23,6 +27,7 @@ import { Toolbar, ToolbarButton } from './components/Toolbar';
 import { DocumentView } from './components/DocumentView';
 import { FileTree } from './components/FileTree';
 import { SidebarPanels, type SidebarPanel } from './components/SidebarPanels';
+import { SidebarResizer } from './components/SidebarResizer';
 import { Outline } from './components/Outline';
 import { SearchPanel } from './components/SearchPanel';
 import { DropZone } from './components/DropZone';
@@ -33,6 +38,7 @@ import { useSettingsSync } from './hooks/useSettingsSync';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useScrollMemory } from './hooks/useScrollMemory';
 import { useSidebarPanel } from './hooks/useSidebarPanel';
+import { useSidebarWidth } from './hooks/useSidebarWidth';
 import { useActiveHeading } from './hooks/useActiveHeading';
 import { useFolderSearch } from './hooks/useFolderSearch';
 import { useEnrichment } from './hooks/useEnrichment';
@@ -66,6 +72,9 @@ export interface WorkspaceAppProps {
   /** Reading position, persisted per document (FR-30). */
   loadScroll: (path: string) => Promise<number>;
   saveScroll: (path: string, ratio: number) => void;
+  /** Sidebar width, persisted per device (FR-30). */
+  loadSidebarWidth: () => Promise<number>;
+  saveSidebarWidth: (width: number) => void;
 }
 
 /**
@@ -99,6 +108,8 @@ export function WorkspaceApp({
   dragAccepts,
   loadScroll,
   saveScroll,
+  loadSidebarWidth,
+  saveSidebarWidth,
 }: WorkspaceAppProps) {
   // Live: a change made in the options page reaches this surface
   // without a reload (FR-26).
@@ -111,6 +122,14 @@ export function WorkspaceApp({
   const [raw, setRaw] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [sidebarPanel, setSidebarPanel] = useSidebarPanel(doc);
+
+  const { width, setWidth, nudgeWidth } = useSidebarWidth(
+    doc,
+    loadSidebarWidth,
+    saveSidebarWidth,
+    clampSidebarWidth,
+    SIDEBAR_DEFAULT,
+  );
 
   const sanitizer = useMemo(() => createSanitizer(doc.defaultView!), [doc]);
   const enrichment = useEnrichment(sanitizer, settings, doc);
@@ -485,6 +504,16 @@ export function WorkspaceApp({
               </div>
             ) : null}
           </nav>
+
+          {sidebarVisible ? (
+            <SidebarResizer
+              width={width}
+              min={SIDEBAR_MIN}
+              max={SIDEBAR_MAX}
+              onResize={setWidth}
+              onNudge={nudgeWidth}
+            />
+          ) : null}
 
           <div class="mw-content">
             <Tabs

@@ -28,6 +28,7 @@ export const en = {
   skipToContent: 'Skip to content',
   filesNav: 'Files',
   toggleSidebar: 'Toggle sidebar',
+  resizeSidebar: 'Resize the sidebar',
   reload: 'Reload',
   reloadFromDisk: 'Reload from disk',
   themeIs: 'Theme: $1',
