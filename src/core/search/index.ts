@@ -20,7 +20,9 @@ import { isMarkdownPath, splitFrontMatter } from '../markdown';
  * - Caps on directories, files, and matches, each of which stops the walk
  *   and says so rather than letting it run. A truncated answer the reader
  *   can see is better than a complete one that arrives after they gave up.
- * - An `AbortSignal`, because the next keystroke makes this walk pointless.
+ * - A cancellation flag, because the next keystroke makes this walk
+ *   pointless. Structurally typed rather than a DOM `AbortSignal`, so core
+ *   stays free of browser globals; a real signal satisfies it.
  * - A concurrency limit: in reader mode every read is a round trip to the
  *   service worker, and an unbounded fan-out buries it.
  *
@@ -119,6 +121,14 @@ export async function searchFolder(
   const files: string[] = [];
 
   while (queue.length > 0 && !aborted()) {
+    // The file cap ends the walk, not just the directory being read. It
+    // used to break only the inner loop, so a huge tree kept listing
+    // directories it had already decided to ignore the contents of.
+    if (files.length >= limits.files) {
+      truncated = true;
+      break;
+    }
+
     const directory = queue.shift()!;
     if (directoriesListed >= limits.directories) {
       truncated = true;

@@ -60,6 +60,7 @@ export const ja: Record<keyof typeof en, string> = {
   searchPrompt: '入力すると、このフォルダ内の全文書を検索します。',
   searchNoFolder: '検索できるフォルダが開いていません。',
   searchTooShort: '$1 文字以上入力してください。',
+  searchRunning: '検索中…',
   searchScanning: '検索中… $1 件の文書を読みました。',
   searchNoMatches: '一致するものはありません。',
   searchMatchCount: '$2 件の文書で $1 件一致。',

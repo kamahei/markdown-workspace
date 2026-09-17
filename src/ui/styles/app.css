@@ -602,13 +602,21 @@
   min-height: 0;
 }
 
-.mw-search-status {
+.mw-search-status,
+.mw-search-progress {
   flex: 0 0 auto;
   margin: 0;
   padding: 0.4rem 0.6rem;
   color: var(--mw-fg-subtle);
   font-size: 11px;
   line-height: 1.4;
+}
+
+/* Sits directly under the status line, so it does not repeat its top
+   padding. A separate class rather than a second one on the same element:
+   `.mw-search-status` then names exactly one thing. */
+.mw-search-progress {
+  padding-top: 0;
 }
 
 .mw-search-results {

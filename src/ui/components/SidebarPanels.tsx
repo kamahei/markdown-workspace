@@ -44,22 +44,28 @@ export function SidebarPanels({ panels, selected, onSelect, label }: SidebarPane
     ? selected
     : (panels[0]?.id ?? 'files');
 
+  /** Selects a tab and puts focus on it, which the pattern requires. */
+  const go = useCallback(
+    (next: SidebarPanel | undefined) => {
+      if (!next) return;
+      onSelect(next.id);
+      // Found by data attribute rather than by id: no escaping, and it
+      // cannot reach a tab belonging to some other tablist on the page.
+      listRef.current
+        ?.querySelector<HTMLButtonElement>(`[data-panel="${next.id}"]`)
+        ?.focus();
+    },
+    [onSelect],
+  );
+
   const move = useCallback(
     (delta: number) => {
       const index = panels.findIndex((panel) => panel.id === active);
       if (index < 0) return;
       // Wraps, per the tablist pattern.
-      const next = panels[(index + delta + panels.length) % panels.length];
-      if (!next) return;
-      onSelect(next.id);
-      // Selection follows focus, so focus has to follow selection too. Found
-      // by data attribute rather than by id: no escaping, and it cannot
-      // reach a tab belonging to some other tablist on the page.
-      listRef.current
-        ?.querySelector<HTMLButtonElement>(`[data-panel="${next.id}"]`)
-        ?.focus();
+      go(panels[(index + delta + panels.length) % panels.length]);
     },
-    [panels, active, onSelect],
+    [panels, active, go],
   );
 
   const onKeyDown = useCallback(
@@ -73,19 +79,22 @@ export function SidebarPanels({ panels, selected, onSelect, label }: SidebarPane
           event.preventDefault();
           move(-1);
           break;
+        // Home and End move focus too. Selecting a tab the focus is no
+        // longer on leaves the roving tabindex pointing somewhere the
+        // reader is not, and the next Tab press jumps somewhere unexpected.
         case 'Home':
           event.preventDefault();
-          if (panels[0]) onSelect(panels[0].id);
+          go(panels[0]);
           break;
         case 'End':
           event.preventDefault();
-          if (panels.length > 0) onSelect(panels[panels.length - 1]!.id);
+          go(panels[panels.length - 1]);
           break;
         default:
           break;
       }
     },
-    [move, onSelect, panels],
+    [move, go, panels],
   );
 
   // One panel is not a choice, so it gets no tabs — reader mode with the

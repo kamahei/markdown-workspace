@@ -101,6 +101,53 @@ test.describe('folder search', () => {
     await expect(page.locator('#details')).toBeInViewport();
   });
 
+  test('wins over the position the document was last left at', async ({
+    context,
+    makeTree,
+    fileUrl,
+  }) => {
+    /*
+     * Two things want the scroll when a document opens: the remembered
+     * reading position, and the line a search asked for. The remembered
+     * one used to win, because it waits on a storage read and therefore
+     * lands second -- so clicking a search result dropped the reader
+     * wherever they last stopped instead of on the match.
+     */
+    const filler = (n: number) =>
+      Array.from({ length: n }, (_, i) => `Paragraph ${i}.`).join('\n\n');
+    const root = await makeTree({
+      'start.md': '# Start\n\nnothing here\n',
+      'target.md': [
+        '# Target',
+        filler(40),
+        '## Deep Section',
+        'the needle is here',
+        filler(40),
+      ].join('\n\n'),
+    });
+    const page = await context.newPage();
+
+    // Leave target.md remembered near its end.
+    await page.goto(fileUrl(`${root}/target.md`));
+    await expect(page.locator('.mw-doc h1')).toBeVisible();
+    await page.locator('.mw-main').evaluate((el) => {
+      el.scrollTop = el.scrollHeight - el.clientHeight;
+    });
+    await page.waitForTimeout(900);
+
+    // Then arrive at it from a search hit near the middle.
+    await page.goto(fileUrl(`${root}/start.md`));
+    await expect(page.locator('.mw-doc h1')).toBeVisible();
+    await page.getByRole('tab', { name: 'Search' }).click();
+    await page.getByRole('searchbox', { name: /Search the text/ }).fill('needle is here');
+    await page.locator('.mw-search-hit').first().click();
+    await expect(page.locator('.mw-doc h1')).toHaveText('Target');
+
+    // Given time for a late restore to arrive and steal it back.
+    await page.waitForTimeout(1200);
+    await expect(page.locator('#deep-section')).toBeInViewport();
+  });
+
   test('does not leave the results of an abandoned query on screen', async ({
     context,
     makeTree,
@@ -152,6 +199,39 @@ test.describe('folder search', () => {
     // Still interactive: the tabs respond while all that was going on.
     await page.getByRole('tab', { name: 'Files' }).click();
     await expect(page.locator('.mw-tree')).toBeVisible();
+  });
+
+  test('Ctrl+Shift+F opens the search panel and focuses its field', async ({
+    context,
+    makeTree,
+    fileUrl,
+    hasFileAccess,
+  }) => {
+    test.skip(!hasFileAccess, 'needs file:// access');
+    const root = await makeTree({ 'a.md': '# A\n\nsome words here\n' });
+    const page = await context.newPage();
+    await page.goto(fileUrl(`${root}/a.md`));
+    await expect(page.locator('.mw-doc h1')).toBeVisible();
+
+    await page.locator('.mw-main').click();
+    await page.keyboard.press('Control+Shift+F');
+
+    const box = page.getByRole('searchbox', { name: /Search the text/ });
+    await expect(page.getByRole('tab', { name: 'Search' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    await expect(box).toBeFocused();
+
+    // And it works from a hidden sidebar. Out of the field first: a
+    // shortcut must not fire while the reader is typing, which is why
+    // Ctrl+B does nothing from inside the search box.
+    await page.locator('.mw-main').click();
+    await page.keyboard.press('Control+b');
+    await expect(page.locator('.mw-sidebar')).toBeHidden();
+    await page.keyboard.press('Control+Shift+F');
+    await expect(page.locator('.mw-sidebar')).toBeVisible();
+    await expect(box).toBeFocused();
   });
 
   test('tells the reader when there is no folder to search', async ({

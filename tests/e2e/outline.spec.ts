@@ -80,6 +80,78 @@ test.describe('outline', () => {
     expect(page.url()).toContain('#configuring');
   });
 
+  test('Back returns to where the reader was, and Forward goes again', async ({
+    context,
+    makeTree,
+    fileUrl,
+  }) => {
+    /*
+     * A native anchor link gets scroll restoration from the browser, but
+     * only for the document scroller; this app scrolls .mw-main, so Back
+     * used to change the address bar and nothing else. The history entry
+     * carries the offset being left so that Back means what it looks like.
+     */
+    const root = await makeTree({ 'doc.md': DOC });
+    const page = await context.newPage();
+    await page.goto(fileUrl(`${root}/doc.md`));
+    await expect(page.locator('.mw-doc h1')).toBeVisible();
+    await page.getByRole('tab', { name: 'Outline' }).click();
+
+    await page.locator('.mw-main').evaluate((el) => {
+      el.scrollTop = 600;
+    });
+    await page.waitForTimeout(100);
+
+    await page.getByRole('link', { name: 'Configuring', exact: true }).click();
+    await expect(page.locator('#configuring')).toBeInViewport();
+    const atHeading = await page.locator('.mw-main').evaluate((el) => el.scrollTop);
+    expect(atHeading).toBeGreaterThan(600);
+
+    await page.goBack();
+    await expect
+      .poll(() => page.locator('.mw-main').evaluate((el) => el.scrollTop))
+      .toBe(600);
+
+    await page.goForward();
+    await expect
+      .poll(() => page.locator('.mw-main').evaluate((el) => el.scrollTop))
+      .toBe(atHeading);
+  });
+
+  test('does not drag the reader back after they scroll away', async ({
+    context,
+    makeTree,
+    fileUrl,
+  }) => {
+    /*
+     * Clicking an outline entry puts a fragment in the address bar. The
+     * reader passed `location.hash` to the document view on every render,
+     * so from that moment on any unrelated re-render handed it a new
+     * fragment and it scrolled there -- the reader could not get away from
+     * the heading they had just jumped to.
+     */
+    const root = await makeTree({ 'doc.md': DOC });
+    const page = await context.newPage();
+    await page.goto(fileUrl(`${root}/doc.md`));
+    await expect(page.locator('.mw-doc h1')).toBeVisible();
+
+    await page.getByRole('tab', { name: 'Outline' }).click();
+    await page.getByRole('link', { name: 'Configuring', exact: true }).click();
+    await expect(page.locator('#configuring')).toBeInViewport();
+
+    // Back to the top by hand, then provoke a render from somewhere else.
+    await page.locator('.mw-main').evaluate((el) => {
+      el.scrollTop = 0;
+    });
+    await page.getByRole('tab', { name: 'Search' }).click();
+    await page.getByRole('searchbox', { name: /Search the text/ }).fill('Paragraph');
+    await page.waitForTimeout(1200);
+
+    expect(await page.locator('.mw-main').evaluate((el) => el.scrollTop)).toBeLessThan(
+      100,
+    );
+  });
+
   test('marks where the reader is, and updates on scroll', async ({
     context,
     makeTree,

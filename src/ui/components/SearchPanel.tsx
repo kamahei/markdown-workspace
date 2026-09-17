@@ -1,3 +1,4 @@
+import { useMemo } from 'preact/hooks';
 import { basename } from '@core/fs/types';
 import { groupByFile, MIN_QUERY_LENGTH, type SearchMatch } from '@core/search';
 import type { FolderSearchState } from '../hooks/useFolderSearch';
@@ -35,7 +36,9 @@ export function SearchPanel({
   available,
   onOpen,
 }: SearchPanelProps) {
-  const groups = report ? groupByFile(report.matches) : [];
+  // Grouped once and passed to the status line, which used to group the
+  // same list a second time just to count the documents.
+  const groups = useMemo(() => (report ? groupByFile(report.matches) : []), [report]);
   const tooShort = query.trim().length > 0 && query.trim().length < MIN_QUERY_LENGTH;
 
   return (
@@ -57,13 +60,21 @@ export function SearchPanel({
       </div>
 
       {/*
-        Live region: a search that finishes while focus is still in the
-        field produces no other announcement, so somebody using a screen
-        reader would have no idea the results had arrived.
+        Two lines, and the split is for the screen reader.
+
+        The live region announces settled states only. Putting the running
+        count in it meant a long search announced itself a hundred times --
+        a polite region that never settles is worse than none. The count
+        still shows, in a line the screen reader is told to ignore.
       */}
       <p class="mw-search-status" role="status">
-        {describeStatus({ available, tooShort, running, scanned, report })}
+        {describeStatus({ available, tooShort, running, report, groups })}
       </p>
+      {running && scanned > 0 ? (
+        <p class="mw-search-progress" aria-hidden="true">
+          {t('searchScanning', [String(scanned)])}
+        </p>
+      ) : null}
 
       {report?.truncated ? <p class="mw-sidebar-note">{t('searchTruncated')}</p> : null}
 
@@ -99,14 +110,21 @@ export function SearchPanel({
 /**
  * The matching line with the query marked.
  *
- * A long line is trimmed around the match rather than from the start, so a
- * hit 300 characters in is still visible instead of being scrolled off the
- * end of a 260px sidebar.
+ * Trimmed around the match rather than from the start of the line, so a hit
+ * 300 characters in is still visible instead of being scrolled off the end
+ * of a 260px sidebar.
+ *
+ * The leading context is short on purpose. It was 32 characters, which is
+ * about as much as the column fits, so a match late in a line was pushed to
+ * the right edge and the highlight itself came out clipped — the one thing
+ * the row exists to show. Twelve leaves the mark near the start and gives
+ * the rest of the width to what follows it.
  */
 function Excerpt({ match }: { match: SearchMatch }) {
-  const CONTEXT = 32;
-  const from = Math.max(0, match.start - CONTEXT);
-  const to = Math.min(match.text.length, match.end + CONTEXT * 2);
+  const LEAD = 12;
+  const TRAIL = 120;
+  const from = Math.max(0, match.start - LEAD);
+  const to = Math.min(match.text.length, match.end + TRAIL);
 
   const before = match.text.slice(from, match.start);
   const hit = match.text.slice(match.start, match.end);
@@ -127,22 +145,20 @@ function describeStatus({
   available,
   tooShort,
   running,
-  scanned,
   report,
+  groups,
 }: {
   available: boolean;
   tooShort: boolean;
   running: boolean;
-  scanned: number;
   report: FolderSearchState['report'];
+  groups: ReturnType<typeof groupByFile>;
 }): string {
   if (!available) return t('searchNoFolder');
   if (tooShort) return t('searchTooShort', [String(MIN_QUERY_LENGTH)]);
-  if (running) return scanned > 0 ? t('searchScanning', [String(scanned)]) : t('loading');
+  // One announcement for the whole search, not one per batch of files.
+  if (running) return t('searchRunning');
   if (!report) return t('searchPrompt');
   if (report.matches.length === 0) return t('searchNoMatches');
-  return t('searchMatchCount', [
-    String(report.matches.length),
-    String(groupByFile(report.matches).length),
-  ]);
+  return t('searchMatchCount', [String(report.matches.length), String(groups.length)]);
 }

@@ -28,6 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Back and Forward move between the headings you jumped to from the outline,
+  returning to the position you left rather than only changing the address
+  bar. A browser restores that by itself for anchor links, but only for the
+  page's own scrollbar, and this app scrolls a pane.
+
 - Reloading or updating the extension now says so in any page left open,
   with a button to reload it, instead of leaving a sidebar that quietly
   does nothing. The page stays readable either way.

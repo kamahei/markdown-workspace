@@ -104,6 +104,19 @@ export function ReaderApp({
   const docRoot = useRef<HTMLElement>(null);
 
   const documentPath = page.path ?? '';
+
+  /*
+   * The fragment this page was opened with, captured once.
+   *
+   * It used to be read from `location.hash` on every render, which was
+   * fine until the outline started pushing a fragment of its own: from
+   * then on, any later re-render handed DocumentView a *new* fragment and
+   * it scrolled there — so clicking an outline entry and then scrolling
+   * away put the reader straight back. A prop that silently changes
+   * meaning because a global moved underneath it is the bug, not the
+   * scrolling.
+   */
+  const [initialFragment] = useState(() => doc.location.hash);
   const sanitizer = useMemo(() => createSanitizer(doc.defaultView!), [doc]);
 
   const result: RenderResult = useMemo(
@@ -125,23 +138,51 @@ export function ReaderApp({
    * Jump to a heading without reloading.
    *
    * Reader mode navigates between *documents* by changing the page, but a
-   * fragment within the open one is a scroll: setting `location.hash` here
-   * would be a same-page navigation that re-runs nothing, and pushing the
-   * state keeps the back button meaningful.
+   * fragment within the open one is a scroll: setting `location.hash` would
+   * be a same-page navigation that re-runs nothing.
+   *
+   * The history entry carries the position being left, because the browser
+   * cannot restore it for us. Native anchor links get scroll restoration
+   * free, but only for the document scroller — this app scrolls `.mw-main`,
+   * so Back moved the address bar and nothing else. Recording the offset on
+   * the outgoing entry is what makes Back mean what it looks like it means.
    */
   const goToHeading = useCallback(
     (id: string) => {
       const root = docRoot.current;
-      if (root) scrollToFragment(root, id);
+      const view = doc.defaultView;
       try {
-        doc.defaultView?.history.pushState(null, '', `#${encodeURIComponent(id)}`);
+        view?.history.replaceState({ mwScrollTop: scroller.current?.scrollTop ?? 0 }, '');
+        view?.history.pushState({ mwScrollTop: null }, '', `#${encodeURIComponent(id)}`);
       } catch {
-        // A file:// page can refuse pushState in some configurations; the
-        // scroll already happened, which is the part that matters.
+        // A file:// page can refuse history writes in some configurations;
+        // the scroll below still happens, which is the part that matters.
       }
+      if (root) scrollToFragment(root, id);
     },
     [doc],
   );
+
+  /** Back and Forward between headings, since the browser cannot do it. */
+  useEffect(() => {
+    const view = doc.defaultView;
+    if (!view) return;
+
+    const onPopState = (event: PopStateEvent) => {
+      const state = event.state as { mwScrollTop?: number | null } | null;
+      const offset = state?.mwScrollTop;
+      if (typeof offset === 'number') {
+        if (scroller.current) scroller.current.scrollTop = offset;
+        return;
+      }
+      const root = docRoot.current;
+      const hash = view.location.hash;
+      if (root && hash) scrollToFragment(root, hash);
+    };
+
+    view.addEventListener('popstate', onPopState);
+    return () => view.removeEventListener('popstate', onPopState);
+  }, [doc]);
 
   const tree = useFileTree(fileSource, treeRoot);
   const { reveal, setFilter } = tree;
@@ -179,14 +220,15 @@ export function ReaderApp({
   /** Open a search hit: a different document, landing near the line. */
   const openMatch = useCallback(
     (path: string, line: number) => {
-      handOffTreeFocus();
       if (path === documentPath) {
-        // Already here, so it is only a scroll.
+        // Already here, so it is only a scroll -- and nothing navigates,
+        // so there is no focus to hand across a page load.
         const heading = headingForLine(result.headings, line);
         const root = docRoot.current;
         if (heading && root) scrollToFragment(root, heading.id);
         return;
       }
+      handOffTreeFocus();
       handOff(path, line);
       doc.location.href = pathToFileUrl(path);
     },
@@ -201,19 +243,40 @@ export function ReaderApp({
    * arrives. Above the first heading it stays at the top rather than
    * guessing.
    */
+  const landedFromSearch = pending?.path === documentPath;
+  const landed = useRef(false);
   useEffect(() => {
-    if (!pending || pending.path !== documentPath || raw) return;
-    const heading = headingForLine(result.headings, pending.line);
+    if (!landedFromSearch || raw || landed.current) return;
+    const heading = headingForLine(result.headings, pending!.line);
     if (!heading) return;
     const root = docRoot.current;
     if (!root) return;
+    // Once. This effect re-runs whenever the document is re-rendered --
+    // a settings change does that -- and without the guard the reader
+    // would be yanked back to the search hit long after arriving.
+    landed.current = true;
     // After paint, so the document has its real height.
     const frame = requestAnimationFrame(() => scrollToFragment(root, heading.id));
     return () => cancelAnimationFrame(frame);
-  }, [pending, documentPath, raw, result.headings]);
+  }, [landedFromSearch, pending, raw, result.headings]);
 
-  // Restored only once the document is rendered, so scrollHeight is real.
-  useScrollMemory(scroller, raw ? null : documentPath, loadScroll, saveScroll, true);
+  /*
+   * Reading position, restored once the document is rendered.
+   *
+   * Suppressed when a search sent the reader to a particular line. Both
+   * want the scroll on the same page load, and the remembered position was
+   * winning because it arrives later: it waits on a storage read, so its
+   * scroll lands after the one the search asked for. Opening a search hit
+   * and being dropped wherever you last stopped reading is the wrong
+   * answer to a question about a specific line.
+   */
+  useScrollMemory(
+    scroller,
+    raw ? null : documentPath,
+    loadScroll,
+    saveScroll,
+    !landedFromSearch,
+  );
 
   useEffect(() => {
     applyTheme(doc.documentElement, settings.theme);
@@ -273,6 +336,11 @@ export function ReaderApp({
           requestAnimationFrame(() => searchRef.current?.focus());
         },
         escape: () => {
+          // The search field clears itself, so leave it alone: this handler
+          // firing as well would clear the tree's filter at the same time,
+          // from a keypress aimed at the search box.
+          if (doc.activeElement === searchRef.current) return;
+
           // The shortcut list says Escape clears the filter, so it clears the
           // filter -- from the tree as well as from the field. It used to do
           // so only when the field had focus, which meant arrowing into a
@@ -426,7 +494,7 @@ export function ReaderApp({
             result={result}
             source={source}
             raw={raw}
-            fragment={doc.location.hash}
+            fragment={initialFragment}
             documentPath={documentPath}
             fileSource={fileSource}
             onNavigate={openPath}

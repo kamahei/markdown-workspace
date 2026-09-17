@@ -49,10 +49,17 @@ export function useFolderSearch(
   const generation = useRef(0);
   const signal = useRef({ aborted: false });
 
-  // Read through a ref so a changed options object does not restart a walk
-  // in progress; the values are read once, when a walk starts.
-  const optionsRef = useRef(options);
-  optionsRef.current = options;
+  /*
+   * Destructured so the effect depends on the values rather than on the
+   * object.
+   *
+   * These were read through a ref at first, to stop a new object identity
+   * restarting a walk. Both callers memoize the object, so that was
+   * guarding against something that does not happen — and it bought real
+   * staleness in exchange: turning "show hidden files" on left the results
+   * of the previous setting on screen until the query was retyped.
+   */
+  const { showHidden, excludedDirectories } = options;
 
   useEffect(() => {
     generation.current += 1;
@@ -76,8 +83,8 @@ export function useFolderSearch(
       void searchFolder(source, {
         query: trimmed,
         root,
-        showHidden: optionsRef.current.showHidden,
-        excludedDirectories: optionsRef.current.excludedDirectories,
+        showHidden,
+        excludedDirectories,
         signal: mine,
         onProgress: (files) => {
           if (run === generation.current) setScanned(files);
@@ -100,7 +107,7 @@ export function useFolderSearch(
       clearTimeout(timer);
       mine.aborted = true;
     };
-  }, [source, root, query]);
+  }, [source, root, query, showHidden, excludedDirectories]);
 
   const update = useCallback((value: string) => setQuery(value), []);
 

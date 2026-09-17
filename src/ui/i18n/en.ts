@@ -66,6 +66,7 @@ export const en = {
   searchPrompt: 'Type to search every document in this folder.',
   searchNoFolder: 'No folder is open to search.',
   searchTooShort: 'Type at least $1 characters.',
+  searchRunning: 'Searching…',
   searchScanning: 'Searching… $1 documents read.',
   searchNoMatches: 'Nothing matched.',
   searchMatchCount: '$1 matches in $2 documents.',

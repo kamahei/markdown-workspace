@@ -166,6 +166,17 @@ export function WorkspaceApp({
    * of a section lands at the section. After paint, because the document
    * has only just been handed to Preact.
    */
+  /**
+   * The tab a search sent the reader to, if any.
+   *
+   * Held so the remembered scroll position can stand aside for it. Both
+   * want the scroll when a tab opens, and the remembered one arrives later
+   * because it waits on a storage read -- so without this, clicking a
+   * search result drops the reader wherever they last stopped in that
+   * document instead of on the line they asked for.
+   */
+  const searchLanded = useRef<string | null>(null);
+
   const landOnLine = useCallback((headings: Heading[], line: number) => {
     const heading = headingForLine(headings, line);
     if (!heading) return;
@@ -186,6 +197,11 @@ export function WorkspaceApp({
   const openPath = useCallback(
     async (path: string, line?: number) => {
       if (!fileSource) return;
+
+      // Set before the state change, so the render that follows already
+      // knows whether the remembered position applies. Cleared on an
+      // ordinary open, or reopening a closed tab would keep suppressing it.
+      searchLanded.current = line === undefined ? null : path;
 
       const existing = tabs.find((tab) => tab.path === path);
       if (existing) {
@@ -289,6 +305,11 @@ export function WorkspaceApp({
           if (activeId) closeTab(activeId);
         },
         escape: () => {
+          // The search field clears itself, so leave it alone: this handler
+          // firing as well would clear the tree's filter at the same time,
+          // from a keypress aimed at the search box.
+          if (doc.activeElement === searchRef.current) return;
+
           // The shortcut list says Escape clears the filter, so it clears the
           // filter -- from the tree as well as from the field. It used to do
           // so only when the field had focus, which meant arrowing into a
@@ -402,7 +423,8 @@ export function WorkspaceApp({
     raw ? null : activeId,
     loadScroll,
     saveScroll,
-    Boolean(active),
+    // Stands aside when a search sent the reader to a particular line.
+    Boolean(active) && searchLanded.current !== activeId,
   );
 
   // Capability-dependent controls are hidden rather than shown as dead
