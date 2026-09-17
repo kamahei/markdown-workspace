@@ -113,7 +113,21 @@ this and detects whether the permission is active.
 | Open the workspace directly    | Click the Markdown Workspace toolbar icon                                         |
 | See the unrendered source      | Use the raw/rendered toggle in the toolbar, or <kbd>Ctrl</kbd>+<kbd>&#92;</kbd>   |
 | Move around without a mouse    | <kbd>/</kbd> to filter, <kbd>&darr;</kbd> into the list, <kbd>Enter</kbd> to open |
+| Jump around a long document    | Open the **Outline** tab in the sidebar                                           |
+| Find text in any document      | Open the **Search** tab, or press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>   |
 | Render Markdown from a website | Add that origin in the options page, then reload                                  |
+
+### If a file downloads instead of opening
+
+Chrome decides whether to display a file or download it from the operating
+system's mime database, before any extension is involved. `.md` is registered
+on essentially every desktop; unusual extensions such as `.mdx` are not always,
+and on a system that does not know the type Chrome downloads the file and the
+extension never sees a page.
+
+Nothing in an extension can override that — the header rewrite that works for
+websites cannot touch `file://` URLs. Registering the type with your desktop
+fixes it, as does renaming the file to `.md`.
 
 ## Browser Support
 

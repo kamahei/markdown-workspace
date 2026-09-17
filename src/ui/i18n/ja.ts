@@ -41,6 +41,12 @@ export const ja: Record<keyof typeof en, string> = {
   sidebarTabSearch: '検索',
   outlineEmpty: 'この文書に見出しはありません。',
 
+  // --- Extension reloaded under an open page ----------------------------
+  extensionReloadedTitle: 'Markdown Workspace が更新されました',
+  extensionReloadedBody:
+    'このページはそのまま読めますが、サイドバー・検索・設定を使うには再読み込みが必要です。',
+  reloadThisPage: 'このページを再読み込み',
+
   // --- File tree --------------------------------------------------------
   filterFilesPlaceholder: 'ファイルを絞り込む…',
   filterFilesLabel: 'ファイル名で絞り込む',

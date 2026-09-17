@@ -39,6 +39,7 @@ import { useScrollMemory } from './hooks/useScrollMemory';
 import { useTreeFocusHandoff } from './hooks/useTreeFocusHandoff';
 import { useSidebarPanel } from './hooks/useSidebarPanel';
 import { useSidebarWidth } from './hooks/useSidebarWidth';
+import { useExtensionAlive } from './hooks/useExtensionAlive';
 import { useActiveHeading } from './hooks/useActiveHeading';
 import { useFolderSearch } from './hooks/useFolderSearch';
 import { usePendingLine } from './hooks/usePendingLine';
@@ -67,6 +68,12 @@ interface ReaderAppProps {
   /** Sidebar width, persisted per device (FR-30). */
   loadSidebarWidth: () => Promise<number>;
   saveSidebarWidth: (width: number) => void;
+  /**
+   * Whether the extension behind this content script still exists.
+   *
+   * Injected rather than imported: `src/ui/` does not touch extension APIs.
+   */
+  isExtensionAlive: () => boolean;
 }
 
 export function ReaderApp({
@@ -82,6 +89,7 @@ export function ReaderApp({
   saveScroll,
   loadSidebarWidth,
   saveSidebarWidth,
+  isExtensionAlive,
 }: ReaderAppProps) {
   // Settings come from the broadcast as well as from local edits, so a
   // change made in the options page reaches an open document without a
@@ -145,6 +153,8 @@ export function ReaderApp({
 
   // And for the same reason, so does the chosen sidebar tab.
   const [sidebarPanel, setSidebarPanel] = useSidebarPanel(doc);
+
+  const extensionAlive = useExtensionAlive(isExtensionAlive);
 
   const { width, setWidth, nudgeWidth } = useSidebarWidth(
     doc,
@@ -372,6 +382,21 @@ export function ReaderApp({
           name={basename(documentPath) || t('untitledDocument')}
         />
       </Toolbar>
+
+      {extensionAlive ? null : (
+        <div class="mw-stale" role="status">
+          <div class="mw-stale-text">
+            <strong>{t('extensionReloadedTitle')}</strong> {t('extensionReloadedBody')}
+          </div>
+          <button
+            type="button"
+            class="mw-btn mw-btn-primary"
+            onClick={() => doc.location.reload()}
+          >
+            {t('reloadThisPage')}
+          </button>
+        </div>
+      )}
 
       <div class="mw-body">
         <nav class="mw-sidebar" hidden={!sidebarVisible} aria-label={t('filesNav')}>

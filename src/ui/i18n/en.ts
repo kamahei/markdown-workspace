@@ -47,6 +47,12 @@ export const en = {
   sidebarTabSearch: 'Search',
   outlineEmpty: 'This document has no headings.',
 
+  // --- Extension reloaded under an open page ----------------------------
+  extensionReloadedTitle: 'Markdown Workspace was updated',
+  extensionReloadedBody:
+    'This page is still readable, but the sidebar, search and settings need a reload to work again.',
+  reloadThisPage: 'Reload this page',
+
   // --- File tree --------------------------------------------------------
   filterFilesPlaceholder: 'Filter files…',
   filterFilesLabel: 'Filter files by name',

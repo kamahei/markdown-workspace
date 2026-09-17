@@ -26,6 +26,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The handle's styling had been in the stylesheet since the first release
   with nothing behind it.
 
+### Changed
+
+- Reloading or updating the extension now says so in any page left open,
+  with a button to reload it, instead of leaving a sidebar that quietly
+  does nothing. The page stays readable either way.
+- The privacy policy and the README describe what the extension actually
+  does: the sidebar width is stored, the outline and search exist, and a
+  file that downloads instead of opening has an explanation and a fix.
+
 ## [0.1.0] - 2026-09-16
 
 First release. Built from source or from the archive attached to this tag;

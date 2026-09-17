@@ -468,6 +468,27 @@
   color: var(--mw-fg);
 }
 
+/* --- Extension reloaded under an open page ------------------------------ */
+
+.mw-stale {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0.75rem;
+  background: var(--mw-warning-bg);
+  border-bottom: 1px solid var(--mw-border);
+  color: var(--mw-fg);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.mw-stale-text {
+  min-width: 0;
+}
+
 /* --- Sidebar tabs ------------------------------------------------------- */
 
 .mw-sidebar-panels {
