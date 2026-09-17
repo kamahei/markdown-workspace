@@ -90,9 +90,25 @@ describe('markdown — headings and anchors (FR-3)', () => {
   it('collects headings with slugs', () => {
     const { headings } = render('# Getting Started\n\n## API Reference\n');
     expect(headings).toEqual([
-      { id: 'getting-started', level: 1, text: 'Getting Started' },
-      { id: 'api-reference', level: 2, text: 'API Reference' },
+      { id: 'getting-started', level: 1, text: 'Getting Started', line: 1 },
+      { id: 'api-reference', level: 2, text: 'API Reference', line: 3 },
     ]);
+  });
+
+  it('records the body line each heading sits on', () => {
+    // A folder search uses this to land near its hit: it knows the line of
+    // a match in a document that is not open yet, and the nearest heading
+    // at or above it is an anchor the rendered page already has.
+    const { headings } = render('intro\n\n# One\n\ntext\n\ntext\n\n## Two\n');
+    expect(headings.map((h) => [h.text, h.line])).toEqual([
+      ['One', 3],
+      ['Two', 9],
+    ]);
+  });
+
+  it('counts lines in the body, so front matter does not shift them', () => {
+    const { headings } = render('---\ntitle: T\nauthor: A\n---\n# One\n');
+    expect(headings[0]?.line).toBe(1);
   });
 
   it('produces stable slugs across renders', () => {

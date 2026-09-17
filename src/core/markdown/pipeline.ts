@@ -168,6 +168,11 @@ export function createRenderer(options: RenderOptions = {}): MarkdownRenderer {
         id,
         level: Number(token.tag.slice(1)),
         text: inlineText(tokens[idx + 1]),
+        // markdown-it maps a block token to [startLine, endLine), 0-based
+        // and relative to what it was given -- which is the body, because
+        // front matter is split off before parsing. Search counts the body
+        // the same way, so the two line up.
+        line: (token.map?.[0] ?? 0) + 1,
       });
       // The sanitizer's DOM-clobbering protection silently drops an `id` whose
       // value collides with a document property -- `id="title"` is removed,

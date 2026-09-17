@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   jumping to any of them. The renderer had been producing the heading list
   since the first release and nothing was reading it; the setting that turns
   the outline on and off had been stored, synced and likewise ignored.
+- Search across every document in the open folder, from a Search tab in the
+  sidebar or with Ctrl+Shift+F. Results are grouped by document with the
+  matching text marked, and opening one lands at the section it is in. The
+  same folders the file tree skips are skipped here, so searching a checked-out
+  repository does not mean reading node_modules.
 - The sidebar now holds more than the file tree: its contents are tabs, and
   which one you chose survives opening the next document.
 

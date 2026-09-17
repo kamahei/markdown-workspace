@@ -20,7 +20,7 @@
  */
 
 export type ShortcutAction =
-  'toggleSidebar' | 'toggleRaw' | 'focusFilter' | 'closeTab' | 'escape';
+  'toggleSidebar' | 'toggleRaw' | 'focusFilter' | 'focusSearch' | 'closeTab' | 'escape';
 
 export interface KeyEventLike {
   key: string;
@@ -75,6 +75,23 @@ export function matchShortcut(event: KeyEventLike): ShortcutAction | null {
     return null;
   }
 
+  /*
+   * Ctrl+Shift+F searches the whole folder, the combination editors use for
+   * "find in all files". Ctrl+F belongs to Chrome's find-in-page and is not
+   * ours to take.
+   *
+   * Chosen from Chrome's documented bindings rather than by probing for it.
+   * A synthesized key event reaches the page even for combinations the
+   * browser owns — Ctrl+Shift+O "arrives" in an automated test and opens
+   * the bookmark manager for a real person — so a probe here produces
+   * false confidence, not evidence. Ctrl+Shift+F is not bound by Chrome;
+   * the manual checklist is where a human confirms that.
+   */
+  if (hasPrimaryModifier(event) && event.shiftKey && !event.altKey) {
+    if (event.key === 'f' || event.key === 'F') return 'focusSearch';
+    return null;
+  }
+
   // Alt+W rather than Ctrl+W: Chrome reserves Ctrl+W for closing the tab and
   // never delivers it to the page.
   if (
@@ -120,6 +137,7 @@ export function shortcutList(platform: 'mac' | 'other' = 'other'): ShortcutDescr
     { keys: `${mod}+B`, descriptionKey: 'shortcutToggleSidebar' },
     { keys: `${mod}+\\`, descriptionKey: 'shortcutToggleRaw' },
     { keys: '/', descriptionKey: 'shortcutFocusFilter' },
+    { keys: `${mod}+Shift+F`, descriptionKey: 'shortcutFocusSearch' },
     { keys: 'Alt+W', descriptionKey: 'shortcutCloseTab' },
     { keys: 'Esc', descriptionKey: 'shortcutClearFilter' },
     { keys: '↑ ↓', descriptionKey: 'shortcutMoveTree' },

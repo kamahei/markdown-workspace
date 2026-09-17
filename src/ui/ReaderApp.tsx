@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import {
   buildOutline,
   flattenOutline,
+  headingForLine,
   renderMarkdown,
   scrollToFragment,
   type RenderResult,
@@ -23,6 +24,7 @@ import { DocumentView } from './components/DocumentView';
 import { FileTree } from './components/FileTree';
 import { SidebarPanels, type SidebarPanel } from './components/SidebarPanels';
 import { Outline } from './components/Outline';
+import { SearchPanel } from './components/SearchPanel';
 import { SidebarHeader } from './components/SidebarHeader';
 import { useFileTree } from './hooks/useFileTree';
 import { useEnrichment } from './hooks/useEnrichment';
@@ -32,6 +34,8 @@ import { useScrollMemory } from './hooks/useScrollMemory';
 import { useTreeFocusHandoff } from './hooks/useTreeFocusHandoff';
 import { useSidebarPanel } from './hooks/useSidebarPanel';
 import { useActiveHeading } from './hooks/useActiveHeading';
+import { useFolderSearch } from './hooks/useFolderSearch';
+import { usePendingLine } from './hooks/usePendingLine';
 import { t, themeKey } from './i18n';
 
 interface ReaderAppProps {
@@ -76,6 +80,7 @@ export function ReaderApp({
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const scroller = useRef<HTMLElement>(null);
   const filterRef = useRef<HTMLInputElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
   /** The rendered article, so the outline can follow the scroll. */
   const docRoot = useRef<HTMLElement>(null);
 
@@ -130,6 +135,54 @@ export function ReaderApp({
   // And for the same reason, so does the chosen sidebar tab.
   const [sidebarPanel, setSidebarPanel] = useSidebarPanel(doc);
 
+  const treeOptions = useMemo(
+    () => ({
+      showHidden: settings.fileBrowser.showHiddenFiles,
+      excludedDirectories: settings.fileBrowser.excludedDirectories,
+      sortBy: settings.fileBrowser.sortBy,
+    }),
+    [settings.fileBrowser],
+  );
+
+  const search = useFolderSearch(fileSource, treeRoot, treeOptions);
+  const { pending, handOff } = usePendingLine(doc);
+
+  /** Open a search hit: a different document, landing near the line. */
+  const openMatch = useCallback(
+    (path: string, line: number) => {
+      handOffTreeFocus();
+      if (path === documentPath) {
+        // Already here, so it is only a scroll.
+        const heading = headingForLine(result.headings, line);
+        const root = docRoot.current;
+        if (heading && root) scrollToFragment(root, heading.id);
+        return;
+      }
+      handOff(path, line);
+      doc.location.href = pathToFileUrl(path);
+    },
+    [doc, documentPath, handOff, handOffTreeFocus, result.headings],
+  );
+
+  /**
+   * Land near the line a search sent us to.
+   *
+   * The match is a line in the source; the rendered page has anchors only
+   * at headings, so the nearest heading at or above the line is where this
+   * arrives. Above the first heading it stays at the top rather than
+   * guessing.
+   */
+  useEffect(() => {
+    if (!pending || pending.path !== documentPath || raw) return;
+    const heading = headingForLine(result.headings, pending.line);
+    if (!heading) return;
+    const root = docRoot.current;
+    if (!root) return;
+    // After paint, so the document has its real height.
+    const frame = requestAnimationFrame(() => scrollToFragment(root, heading.id));
+    return () => cancelAnimationFrame(frame);
+  }, [pending, documentPath, raw, result.headings]);
+
   // Restored only once the document is rendered, so scrollHeight is real.
   useScrollMemory(scroller, raw ? null : documentPath, loadScroll, saveScroll, true);
 
@@ -180,7 +233,15 @@ export function ReaderApp({
         focusFilter: () => {
           // Revealing the sidebar first, or the filter cannot take focus.
           setSidebarVisible(true);
+          setSidebarPanel('files');
           requestAnimationFrame(() => filterRef.current?.focus());
+        },
+        focusSearch: () => {
+          // The panel has to be showing before its field can take focus,
+          // and Preact has not rendered the switch yet at this point.
+          setSidebarVisible(true);
+          setSidebarPanel('search');
+          requestAnimationFrame(() => searchRef.current?.focus());
         },
         escape: () => {
           // The shortcut list says Escape clears the filter, so it clears the
@@ -201,17 +262,8 @@ export function ReaderApp({
           if (doc.activeElement?.closest('[role="tree"]')) scroller.current?.focus();
         },
       }),
-      [doc, setFilter, filterValue],
+      [doc, setFilter, filterValue, setSidebarPanel],
     ),
-  );
-
-  const treeOptions = useMemo(
-    () => ({
-      showHidden: settings.fileBrowser.showHiddenFiles,
-      excludedDirectories: settings.fileBrowser.excludedDirectories,
-      sortBy: settings.fileBrowser.sortBy,
-    }),
-    [settings.fileBrowser],
   );
 
   const panels: SidebarPanel[] = [
@@ -243,6 +295,19 @@ export function ReaderApp({
       ),
     });
   }
+
+  panels.push({
+    id: 'search',
+    label: t('sidebarTabSearch'),
+    content: (
+      <SearchPanel
+        {...search}
+        inputRef={searchRef}
+        available={fileSource !== null}
+        onOpen={openMatch}
+      />
+    ),
+  });
 
   return (
     <div class="mw-root">

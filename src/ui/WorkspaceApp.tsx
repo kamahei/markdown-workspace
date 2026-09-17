@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import {
   buildOutline,
   flattenOutline,
+  headingForLine,
   renderMarkdown,
   scrollToFragment,
+  type Heading,
   type RenderResult,
 } from '@core/markdown';
 import { createSanitizer } from '@core/sanitize';
@@ -22,6 +24,7 @@ import { DocumentView } from './components/DocumentView';
 import { FileTree } from './components/FileTree';
 import { SidebarPanels, type SidebarPanel } from './components/SidebarPanels';
 import { Outline } from './components/Outline';
+import { SearchPanel } from './components/SearchPanel';
 import { DropZone } from './components/DropZone';
 import { Tabs, type Tab } from './components/Tabs';
 import { ErrorPanel, FileAccessPanel, LoadingPane } from './components/States';
@@ -31,6 +34,7 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useScrollMemory } from './hooks/useScrollMemory';
 import { useSidebarPanel } from './hooks/useSidebarPanel';
 import { useActiveHeading } from './hooks/useActiveHeading';
+import { useFolderSearch } from './hooks/useFolderSearch';
 import { useEnrichment } from './hooks/useEnrichment';
 import { t, themeKey } from './i18n';
 
@@ -119,6 +123,7 @@ export function WorkspaceApp({
   /** The rendered article, so the outline can follow the scroll. */
   const docRoot = useRef<HTMLElement>(null);
   const filterRef = useRef<HTMLInputElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     applyTheme(doc.documentElement, settings.theme);
@@ -135,14 +140,40 @@ export function WorkspaceApp({
     openedInitial.current = false;
   }, [fileSource]);
 
+  /**
+   * Scrolls to the heading a source line falls under.
+   *
+   * The rendered page has anchors only at headings, so a line in the middle
+   * of a section lands at the section. After paint, because the document
+   * has only just been handed to Preact.
+   */
+  const landOnLine = useCallback((headings: Heading[], line: number) => {
+    const heading = headingForLine(headings, line);
+    if (!heading) return;
+    requestAnimationFrame(() => {
+      const root = docRoot.current;
+      if (root) scrollToFragment(root, heading.id);
+    });
+  }, []);
+
+  /**
+   * Opens a document, optionally landing near a line.
+   *
+   * The line comes from a folder search, and the scrolling happens here
+   * rather than in the caller because this is where the rendered result
+   * exists. A caller that awaited this and then read `documents` would be
+   * reading state that has not been committed yet.
+   */
   const openPath = useCallback(
-    async (path: string) => {
+    async (path: string, line?: number) => {
       if (!fileSource) return;
 
       const existing = tabs.find((tab) => tab.path === path);
       if (existing) {
         setActiveId(existing.id);
         reveal(path);
+        const already = documents.get(path);
+        if (line !== undefined && already) landOnLine(already.result.headings, line);
         return;
       }
 
@@ -163,6 +194,7 @@ export function WorkspaceApp({
         setTabs((prev) => (prev.some((t) => t.id === path) ? prev : [...prev, tab]));
         setActiveId(path);
         reveal(path);
+        if (line !== undefined) landOnLine(result.headings, line);
       } catch (err) {
         // Translated from the code, not from the error's own message: that
         // one is written in `src/core/`, which has no translator by design,
@@ -176,7 +208,7 @@ export function WorkspaceApp({
         setLoading(false);
       }
     },
-    [fileSource, tabs, sanitizer, settings, reveal],
+    [fileSource, tabs, documents, sanitizer, settings, reveal, landOnLine],
   );
 
   // Open the folder's index document so the workspace does not start empty.
@@ -226,7 +258,13 @@ export function WorkspaceApp({
         toggleRaw: () => setRaw((v) => !v),
         focusFilter: () => {
           setSidebarVisible(true);
+          setSidebarPanel('files');
           requestAnimationFrame(() => filterRef.current?.focus());
+        },
+        focusSearch: () => {
+          setSidebarVisible(true);
+          setSidebarPanel('search');
+          requestAnimationFrame(() => searchRef.current?.focus());
         },
         closeTab: () => {
           if (activeId) closeTab(activeId);
@@ -250,7 +288,7 @@ export function WorkspaceApp({
           if (doc.activeElement?.closest('[role="tree"]')) scroller.current?.focus();
         },
       }),
-      [doc, setFilter, filterValue, activeId, closeTab],
+      [doc, setFilter, filterValue, activeId, closeTab, setSidebarPanel],
     ),
   );
 
@@ -262,6 +300,9 @@ export function WorkspaceApp({
     }),
     [settings.fileBrowser],
   );
+
+  // A handle-backed source is rooted at '/', the same root its tree gets.
+  const search = useFolderSearch(fileSource, fileSource ? '/' : null, treeOptions);
 
   const panels: SidebarPanel[] = [
     {
@@ -306,6 +347,12 @@ export function WorkspaceApp({
     if (root) scrollToFragment(root, id);
   }, []);
 
+  /** Open a search hit; openPath does the landing. */
+  const openMatch = useCallback(
+    (path: string, line: number) => void openPath(path, line),
+    [openPath],
+  );
+
   if (settings.features.tableOfContents) {
     panels.push({
       id: 'outline',
@@ -315,6 +362,19 @@ export function WorkspaceApp({
       ),
     });
   }
+
+  panels.push({
+    id: 'search',
+    label: t('sidebarTabSearch'),
+    content: (
+      <SearchPanel
+        {...search}
+        inputRef={searchRef}
+        available={fileSource !== null}
+        onOpen={openMatch}
+      />
+    ),
+  });
 
   // Keyed on the active tab, so switching tabs restores each document's
   // own position rather than carrying one across.

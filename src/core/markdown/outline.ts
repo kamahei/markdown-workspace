@@ -65,3 +65,22 @@ export function flattenOutline(nodes: OutlineNode[]): OutlineNode[] {
   visit(nodes);
   return out;
 }
+
+/**
+ * The heading a given body line falls under.
+ *
+ * What a folder search needs to land somewhere useful: it knows the line,
+ * the document knows its headings, and the nearest heading at or above that
+ * line is an anchor that already exists in the rendered page.
+ *
+ * Null when the line is above the first heading, or there are none — the
+ * caller should stay at the top rather than invent a target.
+ */
+export function headingForLine(headings: Heading[], line: number): Heading | null {
+  let best: Heading | null = null;
+  for (const heading of headings) {
+    if (heading.line > line) break;
+    best = heading;
+  }
+  return best;
+}

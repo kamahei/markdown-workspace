@@ -137,10 +137,9 @@ test.describe('outline', () => {
     await page.goto(fileUrl(`${root}/doc.md`));
     await expect(page.locator('.mw-doc h1')).toBeVisible();
 
-    // One panel left, so there is no tablist at all — the sidebar looks
-    // exactly as it did before the outline existed.
+    // The tab goes; the others stay, and the file tree is still there.
     await expect(page.getByRole('tab', { name: 'Outline' })).toHaveCount(0);
-    await expect(page.locator('.mw-sidebar-tablist')).toHaveCount(0);
+    await expect(page.getByRole('tab')).toHaveText(['Files', 'Search']);
     await expect(page.locator('.mw-tree')).toBeVisible();
   });
 

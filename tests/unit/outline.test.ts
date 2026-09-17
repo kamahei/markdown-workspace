@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { buildOutline, flattenOutline, type OutlineNode } from '@core/markdown/outline';
+import {
+  buildOutline,
+  flattenOutline,
+  headingForLine,
+  type OutlineNode,
+} from '@core/markdown/outline';
 import type { Heading } from '@core/markdown';
 
 /**
@@ -11,10 +16,11 @@ import type { Heading } from '@core/markdown';
  * one. None of those should produce an empty level or lose a heading.
  */
 
-const h = (level: number, text: string): Heading => ({
+const h = (level: number, text: string, line = 1): Heading => ({
   id: text.toLowerCase().replace(/\s+/g, '-'),
   level,
   text,
+  line,
 });
 
 /** Compact shape for comparing, so the assertions stay readable. */
@@ -99,5 +105,32 @@ describe('flattenOutline', () => {
   it('walks depth first, in document order', () => {
     const outline = buildOutline([h(1, 'A'), h(2, 'B'), h(3, 'C'), h(1, 'D')]);
     expect(flattenOutline(outline).map((n) => n.text)).toEqual(['A', 'B', 'C', 'D']);
+  });
+});
+
+describe('headingForLine', () => {
+  const doc = [h(1, 'One'), h(2, 'Two'), h(2, 'Three')];
+  doc[0]!.line = 1;
+  doc[1]!.line = 10;
+  doc[2]!.line = 20;
+
+  it('finds the heading a line sits under', () => {
+    expect(headingForLine(doc, 12)?.text).toBe('Two');
+    expect(headingForLine(doc, 25)?.text).toBe('Three');
+  });
+
+  it('counts a line on the heading itself as under it', () => {
+    expect(headingForLine(doc, 10)?.text).toBe('Two');
+  });
+
+  it('gives nothing for a line above the first heading', () => {
+    // Front matter, or an intro paragraph. Staying at the top of the
+    // document is right; inventing a target is not.
+    const above = [{ ...doc[0]!, line: 5 }];
+    expect(headingForLine(above, 2)).toBeNull();
+  });
+
+  it('gives nothing for a document with no headings', () => {
+    expect(headingForLine([], 3)).toBeNull();
   });
 });

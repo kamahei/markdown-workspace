@@ -64,6 +64,16 @@ export interface Heading {
   level: number;
   /** Plain text, with inline markup removed. */
   text: string;
+  /**
+   * 1-based line in the *body*, front matter excluded.
+   *
+   * Lets a folder search land near its hit: the result names a line in a
+   * document that is not open yet, and once it is, the nearest heading at
+   * or above that line is an anchor that already exists. The alternative
+   * was tagging every rendered block with its source line, which is a
+   * larger change to the HTML for a slightly better landing.
+   */
+  line: number;
 }
 
 export interface RenderOptions {

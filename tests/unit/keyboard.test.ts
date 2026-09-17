@@ -104,6 +104,44 @@ describe('isTypingTarget', () => {
   });
 });
 
+describe('the folder search shortcut', () => {
+  it('resolves on Ctrl+Shift+F, in either case', () => {
+    expect(matchShortcut(ev({ key: 'f', ctrlKey: true, shiftKey: true }))).toBe(
+      'focusSearch',
+    );
+    expect(matchShortcut(ev({ key: 'F', ctrlKey: true, shiftKey: true }))).toBe(
+      'focusSearch',
+    );
+  });
+
+  it('leaves Ctrl+F to Chrome, which owns find-in-page', () => {
+    expect(matchShortcut(ev({ key: 'f', ctrlKey: true }))).toBeNull();
+  });
+
+  it('is not claimed with Alt held as well', () => {
+    expect(
+      matchShortcut(ev({ key: 'f', ctrlKey: true, shiftKey: true, altKey: true })),
+    ).toBeNull();
+  });
+
+  it('does not fire while the reader is typing', () => {
+    expect(
+      matchShortcut(
+        ev({ key: 'f', ctrlKey: true, shiftKey: true, targetTagName: 'INPUT' }),
+      ),
+    ).toBeNull();
+  });
+
+  it('claims no other letter with the same modifiers', () => {
+    // Ctrl+Shift+O is Chrome's bookmark manager and Ctrl+Shift+T reopens a
+    // closed tab; returning an action for either would mean fighting the
+    // browser for a key it wins.
+    for (const key of ['o', 't', 'b', 'n', 'j']) {
+      expect(matchShortcut(ev({ key, ctrlKey: true, shiftKey: true })), key).toBeNull();
+    }
+  });
+});
+
 describe('the documented list matches what is implemented', () => {
   it('lists no shortcut Chrome reserves', () => {
     const keys = shortcutList().map((s) => s.keys);
@@ -116,15 +154,26 @@ describe('the documented list matches what is implemented', () => {
     // sample docs that were never implemented at all.
     const resolvable: Record<string, ShortcutKey> = {
       'Ctrl+B': { key: 'b', ctrlKey: true },
+      'Ctrl+Shift+F': { key: 'F', ctrlKey: true, shiftKey: true },
       'Ctrl+\\': { key: '\\', ctrlKey: true },
       '/': { key: '/' },
       'Alt+W': { key: 'w', altKey: true },
       Esc: { key: 'Escape' },
     };
 
+    // Tree navigation (arrows, Enter, Home/End) is handled by the tree
+    // itself rather than by the matcher, so it has no probe here.
+    const treeKeys = ['↑ ↓', '→', '←', 'Enter', 'Home / End'];
+
     for (const { keys } of shortcutList()) {
       const probe = resolvable[keys];
-      if (!probe) continue; // Tree navigation is handled by the tree itself.
+      // A listed shortcut with neither a probe nor a place on the tree list
+      // would otherwise be skipped in silence -- which is how a documented
+      // shortcut goes unimplemented in the first place.
+      if (!probe) {
+        expect(treeKeys, `${keys} needs a probe or an exemption`).toContain(keys);
+        continue;
+      }
       expect(matchShortcut(ev(probe)), `${keys} should resolve`).not.toBeNull();
     }
   });

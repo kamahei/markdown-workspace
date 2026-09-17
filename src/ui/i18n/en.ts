@@ -53,6 +53,18 @@ export const en = {
   folderIsEmpty: 'This folder is empty.',
   openParentFolder: 'Open the parent folder: $1',
 
+  // --- Folder search ----------------------------------------------------
+  searchPlaceholder: 'Search this folder…',
+  searchLabel: 'Search the text of every document in this folder',
+  searchPrompt: 'Type to search every document in this folder.',
+  searchNoFolder: 'No folder is open to search.',
+  searchTooShort: 'Type at least $1 characters.',
+  searchScanning: 'Searching… $1 documents read.',
+  searchNoMatches: 'Nothing matched.',
+  searchMatchCount: '$1 matches in $2 documents.',
+  searchTruncated:
+    'Stopped early, so there may be more. Narrow the search or open a smaller folder.',
+
   // --- Reader and directory views ---------------------------------------
   folderCouldNotBeRead: 'This folder could not be read.',
   localFilesBlocked: 'Chrome is blocking access to local files.',
@@ -219,6 +231,7 @@ export const en = {
   shortcutToggleSidebar: 'Toggle the sidebar',
   shortcutToggleRaw: 'Toggle raw / rendered',
   shortcutFocusFilter: 'Focus the file filter',
+  shortcutFocusSearch: 'Search every document in the folder',
   shortcutCloseTab: 'Close the active tab (workspace)',
   shortcutClearFilter: 'Clear the filter',
   shortcutMoveTree: 'Move through the file tree',

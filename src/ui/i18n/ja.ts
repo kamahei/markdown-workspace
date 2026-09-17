@@ -47,6 +47,18 @@ export const ja: Record<keyof typeof en, string> = {
   folderIsEmpty: 'このフォルダは空です。',
   openParentFolder: '親フォルダを開く: $1',
 
+  // --- Folder search ----------------------------------------------------
+  searchPlaceholder: 'このフォルダを検索…',
+  searchLabel: 'このフォルダ内の全文書の本文を検索します',
+  searchPrompt: '入力すると、このフォルダ内の全文書を検索します。',
+  searchNoFolder: '検索できるフォルダが開いていません。',
+  searchTooShort: '$1 文字以上入力してください。',
+  searchScanning: '検索中… $1 件の文書を読みました。',
+  searchNoMatches: '一致するものはありません。',
+  searchMatchCount: '$2 件の文書で $1 件一致。',
+  searchTruncated:
+    '途中で打ち切ったため、まだあるかもしれません。検索語を絞るか、もっと小さいフォルダを開いてください。',
+
   // --- Reader and directory views ---------------------------------------
   folderCouldNotBeRead: 'このフォルダを読み取れませんでした。',
   localFilesBlocked: 'Chrome がローカルファイルへのアクセスをブロックしています。',
@@ -214,6 +226,7 @@ export const ja: Record<keyof typeof en, string> = {
   shortcutToggleSidebar: 'サイドバーの表示切替',
   shortcutToggleRaw: 'ソース／描画の切替',
   shortcutFocusFilter: 'ファイル絞り込みにフォーカス',
+  shortcutFocusSearch: 'フォルダ内の全文書を検索',
   shortcutCloseTab: 'アクティブなタブを閉じる（ワークスペース）',
   shortcutClearFilter: '絞り込みを解除',
   shortcutMoveTree: 'ファイルツリー内を移動',
