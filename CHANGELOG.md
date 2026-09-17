@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- A document outline. The sidebar gains an Outline tab listing the document's
+  headings, nested by depth, marking the one you are currently reading and
+  jumping to any of them. The renderer had been producing the heading list
+  since the first release and nothing was reading it; the setting that turns
+  the outline on and off had been stored, synced and likewise ignored.
+- The sidebar now holds more than the file tree: its contents are tabs, and
+  which one you chose survives opening the next document.
+
 ## [0.1.0] - 2026-09-16
 
 First release. Built from source or from the archive attached to this tag;

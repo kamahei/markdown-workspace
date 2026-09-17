@@ -35,6 +35,11 @@
   /* Accent and status */
   --mw-accent: #1f6feb;
   --mw-accent-hover: #1a5fd0;
+  /* Accent dark enough to be *text* on --mw-bg-subtle. The plain accent
+     reaches 4.63:1 on white but only 4.32:1 on the sidebar's grey, so the
+     first thing to colour sidebar text with it failed WCAG AA by a tenth
+     of a point. This one is 5.46:1 there. */
+  --mw-accent-text: #1a5fd0;
   --mw-danger: #b4232b;
   --mw-danger-bg: #fdeeee;
   --mw-warning: #8a5b00;
@@ -99,6 +104,8 @@
 
     --mw-accent: #58a6ff;
     --mw-accent-hover: #79b8ff;
+    /* 6.70:1 on --mw-bg-subtle; light on dark has room to spare. */
+    --mw-accent-text: #58a6ff;
     --mw-danger: #f8837c;
     --mw-danger-bg: #2d1b1c;
     --mw-warning: #e0b341;
@@ -136,6 +143,8 @@
 
   --mw-accent: #58a6ff;
   --mw-accent-hover: #79b8ff;
+  /* 6.70:1 on --mw-bg-subtle; light on dark has room to spare. */
+  --mw-accent-text: #58a6ff;
   --mw-danger: #f8837c;
   --mw-danger-bg: #2d1b1c;
   --mw-warning: #e0b341;

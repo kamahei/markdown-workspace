@@ -69,6 +69,15 @@ interface DocumentViewProps {
   fileSource: FileSource | null;
   /** Called for links that stay inside the workspace (FR-10, FR-14). */
   onNavigate: (path: string, fragment?: string | null) => void;
+  /**
+   * Lets the parent reach the rendered article.
+   *
+   * The outline needs the heading elements to follow the scroll, and going
+   * through a ref beats querying for `.mw-doc` from outside: the class is a
+   * styling hook, and a parent that searched for it would break silently the
+   * day it changed.
+   */
+  rootRef?: { current: HTMLElement | null };
   /** Phase two: highlighting, math and diagrams. Omit to skip enrichment. */
   enrichment?: {
     loaders: EnrichmentLoaders;
@@ -88,8 +97,10 @@ export function DocumentView({
   fileSource,
   onNavigate,
   enrichment,
+  rootRef,
 }: DocumentViewProps) {
-  const ref = useRef<HTMLElement>(null);
+  const ownRef = useRef<HTMLElement>(null);
+  const ref = rootRef ?? ownRef;
 
   useEffect(() => {
     if (raw) return;

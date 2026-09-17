@@ -526,6 +526,52 @@
   display: none;
 }
 
+/* --- Outline ------------------------------------------------------------ */
+
+.mw-outline-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0.35rem 0;
+}
+
+.mw-outline-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Depth comes from nesting rather than from a computed indent, so a
+   heading that skips a level still lines up with its real parent. */
+.mw-outline-list .mw-outline-list {
+  padding-left: 0.75rem;
+}
+
+.mw-outline-link {
+  display: block;
+  padding: 0.2rem 0.6rem;
+  color: var(--mw-fg-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  text-decoration: none;
+  /* The current-heading marker is drawn here, so every row reserves the
+     space and nothing shifts sideways as the reader scrolls. */
+  border-left: 2px solid transparent;
+  overflow-wrap: anywhere;
+}
+
+.mw-outline-link:hover {
+  color: var(--mw-fg);
+  background: var(--mw-bg-inset);
+}
+
+.mw-outline-link[aria-current='true'] {
+  color: var(--mw-accent-text);
+  border-left-color: var(--mw-accent);
+  font-weight: 600;
+}
+
 /* --- Folder landing pane ------------------------------------------------ */
 
 .mw-folder-title {

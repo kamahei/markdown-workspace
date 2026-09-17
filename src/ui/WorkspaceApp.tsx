@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import { renderMarkdown, type RenderResult } from '@core/markdown';
+import {
+  buildOutline,
+  flattenOutline,
+  renderMarkdown,
+  scrollToFragment,
+  type RenderResult,
+} from '@core/markdown';
 import { createSanitizer } from '@core/sanitize';
 import {
   applyContentWidth,
@@ -15,6 +21,7 @@ import { Toolbar, ToolbarButton } from './components/Toolbar';
 import { DocumentView } from './components/DocumentView';
 import { FileTree } from './components/FileTree';
 import { SidebarPanels, type SidebarPanel } from './components/SidebarPanels';
+import { Outline } from './components/Outline';
 import { DropZone } from './components/DropZone';
 import { Tabs, type Tab } from './components/Tabs';
 import { ErrorPanel, FileAccessPanel, LoadingPane } from './components/States';
@@ -23,6 +30,7 @@ import { useSettingsSync } from './hooks/useSettingsSync';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useScrollMemory } from './hooks/useScrollMemory';
 import { useSidebarPanel } from './hooks/useSidebarPanel';
+import { useActiveHeading } from './hooks/useActiveHeading';
 import { useEnrichment } from './hooks/useEnrichment';
 import { t, themeKey } from './i18n';
 
@@ -108,6 +116,8 @@ export function WorkspaceApp({
 
   const openedInitial = useRef(false);
   const scroller = useRef<HTMLElement>(null);
+  /** The rendered article, so the outline can follow the scroll. */
+  const docRoot = useRef<HTMLElement>(null);
   const filterRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -279,6 +289,33 @@ export function WorkspaceApp({
 
   const active = activeId ? documents.get(activeId) : null;
 
+  // The renderer already emits the headings; this only gives them shape.
+  const outline = useMemo(
+    () => buildOutline(active?.result.headings ?? []),
+    [active?.result.headings],
+  );
+  const outlineIds = useMemo(
+    () => flattenOutline(outline).map((node) => node.id),
+    [outline],
+  );
+  const activeHeading = useActiveHeading(docRoot, outlineIds, !raw);
+
+  /** A heading is a scroll within the open tab, never a navigation. */
+  const goToHeading = useCallback((id: string) => {
+    const root = docRoot.current;
+    if (root) scrollToFragment(root, id);
+  }, []);
+
+  if (settings.features.tableOfContents) {
+    panels.push({
+      id: 'outline',
+      label: t('sidebarTabOutline'),
+      content: (
+        <Outline nodes={outline} activeId={activeHeading} onNavigate={goToHeading} />
+      ),
+    });
+  }
+
   // Keyed on the active tab, so switching tabs restores each document's
   // own position rather than carrying one across.
   useScrollMemory(
@@ -415,6 +452,7 @@ export function WorkspaceApp({
                   fileSource={fileSource}
                   onNavigate={(path) => void openPath(path)}
                   enrichment={enrichment}
+                  rootRef={docRoot}
                 />
               ) : (
                 <WelcomePane

@@ -44,6 +44,7 @@ export const en = {
   sidebarSections: 'Sidebar sections',
   sidebarTabOutline: 'Outline',
   sidebarTabSearch: 'Search',
+  outlineEmpty: 'This document has no headings.',
 
   // --- File tree --------------------------------------------------------
   filterFilesPlaceholder: 'Filter files…',
@@ -167,6 +168,9 @@ export const en = {
   optionsHighlight: 'Syntax highlighting',
   optionsMath: 'Math (KaTeX)',
   optionsDiagrams: 'Diagrams (Mermaid)',
+  optionsTableOfContents: 'Document outline',
+  optionsTableOfContentsHint:
+    'Adds an Outline tab to the sidebar, listing the document’s headings.',
 
   // --- Options: markdown ------------------------------------------------
   optionsMarkdown: 'Markdown',

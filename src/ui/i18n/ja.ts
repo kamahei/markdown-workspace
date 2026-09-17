@@ -38,6 +38,7 @@ export const ja: Record<keyof typeof en, string> = {
   sidebarSections: 'サイドバーのセクション',
   sidebarTabOutline: 'アウトライン',
   sidebarTabSearch: '検索',
+  outlineEmpty: 'この文書に見出しはありません。',
 
   // --- File tree --------------------------------------------------------
   filterFilesPlaceholder: 'ファイルを絞り込む…',
@@ -162,6 +163,9 @@ export const ja: Record<keyof typeof en, string> = {
   optionsHighlight: 'シンタックスハイライト',
   optionsMath: '数式 (KaTeX)',
   optionsDiagrams: '図 (Mermaid)',
+  optionsTableOfContents: '文書アウトライン',
+  optionsTableOfContentsHint:
+    'サイドバーに「アウトライン」タブを追加し、文書の見出しを一覧します。',
 
   // --- Options: markdown ------------------------------------------------
   optionsMarkdown: 'Markdown',

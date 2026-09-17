@@ -77,6 +77,62 @@ test.describe('accessibility (NFR-7)', () => {
     expect(results.violations, describeViolations(results)).toEqual([]);
   });
 
+  test('the outline panel has no violations', async ({
+    context,
+    makeTree,
+    fileUrl,
+    hasFileAccess,
+  }) => {
+    test.skip(!hasFileAccess, 'needs file:// access');
+
+    // The default audit only ever saw the files tab: the other panels are
+    // hidden, and axe does not scan what is hidden. A tablist with the
+    // wrong roles or an unlabelled nav would have sailed through.
+    const root = await makeTree({
+      'doc.md': [
+        '# Title',
+        'Text.',
+        '## Section',
+        'More.',
+        '### Deeper',
+        'Even more.',
+      ].join('\n\n'),
+    });
+    const page = await context.newPage();
+    await page.goto(fileUrl(`${root}/doc.md`));
+    await expect(page.locator('.mw-doc h1')).toBeVisible();
+    await page.getByRole('tab', { name: 'Outline' }).click();
+    await expect(page.getByRole('navigation', { name: 'Outline' })).toBeVisible();
+
+    const results = await audit(page);
+    expect(results.violations, describeViolations(results)).toEqual([]);
+  });
+
+  test('the outline panel has no violations in dark theme', async ({
+    context,
+    makeTree,
+    fileUrl,
+    hasFileAccess,
+  }) => {
+    test.skip(!hasFileAccess, 'needs file:// access');
+
+    // The light theme's current-heading colour was calculated to pass and
+    // then measured, and the calculation was wrong the first time. The dark
+    // one gets measured rather than trusted for the same reason.
+    const root = await makeTree({
+      'doc.md': ['# Title', 'Text.', '## Section', 'More.'].join('\n\n'),
+    });
+    const page = await context.newPage();
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await page.goto(fileUrl(`${root}/doc.md`));
+    await expect(page.locator('.mw-doc h1')).toBeVisible();
+    await page.getByRole('tab', { name: 'Outline' }).click();
+    await expect(page.locator('.mw-outline-link[aria-current="true"]')).toBeVisible();
+
+    const results = await audit(page);
+    expect(results.violations, describeViolations(results)).toEqual([]);
+  });
+
   test('a document with real code, maths and a diagram has no violations', async ({
     context,
     fileUrl,

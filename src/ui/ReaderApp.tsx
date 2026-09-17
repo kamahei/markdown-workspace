@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import { renderMarkdown, type RenderResult } from '@core/markdown';
+import {
+  buildOutline,
+  flattenOutline,
+  renderMarkdown,
+  scrollToFragment,
+  type RenderResult,
+} from '@core/markdown';
 import { createSanitizer } from '@core/sanitize';
 import {
   applyContentWidth,
@@ -16,6 +22,7 @@ import { Breadcrumb, Toolbar, ToolbarButton } from './components/Toolbar';
 import { DocumentView } from './components/DocumentView';
 import { FileTree } from './components/FileTree';
 import { SidebarPanels, type SidebarPanel } from './components/SidebarPanels';
+import { Outline } from './components/Outline';
 import { SidebarHeader } from './components/SidebarHeader';
 import { useFileTree } from './hooks/useFileTree';
 import { useEnrichment } from './hooks/useEnrichment';
@@ -24,6 +31,7 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useScrollMemory } from './hooks/useScrollMemory';
 import { useTreeFocusHandoff } from './hooks/useTreeFocusHandoff';
 import { useSidebarPanel } from './hooks/useSidebarPanel';
+import { useActiveHeading } from './hooks/useActiveHeading';
 import { t, themeKey } from './i18n';
 
 interface ReaderAppProps {
@@ -68,6 +76,8 @@ export function ReaderApp({
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const scroller = useRef<HTMLElement>(null);
   const filterRef = useRef<HTMLInputElement>(null);
+  /** The rendered article, so the outline can follow the scroll. */
+  const docRoot = useRef<HTMLElement>(null);
 
   const documentPath = page.path ?? '';
   const sanitizer = useMemo(() => createSanitizer(doc.defaultView!), [doc]);
@@ -78,6 +88,36 @@ export function ReaderApp({
   );
 
   const enrichment = useEnrichment(sanitizer, settings, doc);
+
+  // The renderer already emits the headings; this only gives them shape.
+  const outline = useMemo(() => buildOutline(result.headings), [result.headings]);
+  const outlineIds = useMemo(
+    () => flattenOutline(outline).map((node) => node.id),
+    [outline],
+  );
+  const activeHeading = useActiveHeading(docRoot, outlineIds, !raw);
+
+  /**
+   * Jump to a heading without reloading.
+   *
+   * Reader mode navigates between *documents* by changing the page, but a
+   * fragment within the open one is a scroll: setting `location.hash` here
+   * would be a same-page navigation that re-runs nothing, and pushing the
+   * state keeps the back button meaningful.
+   */
+  const goToHeading = useCallback(
+    (id: string) => {
+      const root = docRoot.current;
+      if (root) scrollToFragment(root, id);
+      try {
+        doc.defaultView?.history.pushState(null, '', `#${encodeURIComponent(id)}`);
+      } catch {
+        // A file:// page can refuse pushState in some configurations; the
+        // scroll already happened, which is the part that matters.
+      }
+    },
+    [doc],
+  );
 
   const tree = useFileTree(fileSource, treeRoot);
   const { reveal, setFilter } = tree;
@@ -194,6 +234,16 @@ export function ReaderApp({
     },
   ];
 
+  if (settings.features.tableOfContents) {
+    panels.push({
+      id: 'outline',
+      label: t('sidebarTabOutline'),
+      content: (
+        <Outline nodes={outline} activeId={activeHeading} onNavigate={goToHeading} />
+      ),
+    });
+  }
+
   return (
     <div class="mw-root">
       <a class="mw-skip-link" href="#mw-main">
@@ -262,6 +312,7 @@ export function ReaderApp({
             fileSource={fileSource}
             onNavigate={openPath}
             enrichment={enrichment}
+            rootRef={docRoot}
           />
         </main>
       </div>
