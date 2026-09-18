@@ -84,8 +84,9 @@ export function matchShortcut(event: KeyEventLike): ShortcutAction | null {
    * A synthesized key event reaches the page even for combinations the
    * browser owns — Ctrl+Shift+O "arrives" in an automated test and opens
    * the bookmark manager for a real person — so a probe here produces
-   * false confidence, not evidence. Ctrl+Shift+F is not bound by Chrome;
-   * the manual checklist is where a human confirms that.
+   * false confidence, not evidence. Confirmed by hand on 2026-09-18, which
+   * is the only way this can be confirmed; the manual checklist keeps that
+   * obligation for whatever binding comes next.
    */
   if (hasPrimaryModifier(event) && event.shiftKey && !event.altKey) {
     if (event.key === 'f' || event.key === 'F') return 'focusSearch';

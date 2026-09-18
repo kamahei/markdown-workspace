@@ -14,7 +14,7 @@
  * Output: store-assets/ (gitignored; regenerate with pnpm build:store-assets)
  */
 import { chromium } from '@playwright/test';
-import { mkdir, rm, writeFile, mkdtemp } from 'node:fs/promises';
+import { mkdir, readdir, rm, writeFile, mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -41,6 +41,13 @@ const LOCALES = [
     rich: 'docs/code-and-diagrams.md',
     folder: 'docs/',
     mathHeading: 'Math',
+    /* A word that appears in more than one sample document, so the search
+       shot shows what a folder-wide search is for rather than one hit. */
+    query: 'folder',
+    /* A different document from the search shot, and the one with the most
+       sections: an outline of four entries looks like nothing, and two
+       screenshots of the same page look like a mistake. */
+    outline: 'docs/writing.md',
   },
   {
     id: 'ja',
@@ -50,6 +57,8 @@ const LOCALES = [
     rich: 'docs/コードと図.md',
     folder: 'docs/',
     mathHeading: '数式',
+    query: 'フォルダ',
+    outline: 'docs/書式.md',
   },
 ];
 
@@ -104,13 +113,33 @@ async function shoot(page, dir, name) {
 /**
  * The five screenshots for one locale.
  *
- * Five is the store's limit, so each has to earn its place: what it is, what
- * it renders, how a folder looks, that there is a dark theme, and that the
- * privacy claim is visible in the product rather than only in the copy.
+ * Five is the store's limit, so each has to earn its place, and 0.2.0 forced
+ * a rethink: the outline and the folder search are the two things a
+ * one-file viewer cannot do at all, and neither was in the set.
+ *
+ * What went, and why. **Syntax highlighting** lost its own slot because a
+ * Markdown viewer that highlights code is expected rather than persuasive;
+ * it is still visible in the first shot. **The dark theme** no longer has a
+ * shot of its own either — it is carried by the maths-and-diagrams one,
+ * which is where it shows best. What stayed is the core claim, the two new
+ * capabilities, the features people do not expect to work, and the settings
+ * page, because the privacy claim should be visible in the product and not
+ * only asserted in the description.
  */
 async function captureLocale(context, id, locale) {
   const dir = `${OUT}/${locale.id}`;
   await mkdir(dir, { recursive: true });
+  /*
+   * Clear the directory first.
+   *
+   * Renaming a shot used to leave the old file behind, so the folder held
+   * more than five and the upload set was whatever someone picked out of
+   * it. verify() would have caught the count eventually; this stops it
+   * being a question.
+   */
+  for (const stale of await readdir(dir)) {
+    if (stale.endsWith('.png')) await rm(`${dir}/${stale}`);
+  }
 
   const fileUrl = (relative) => pathToFileURL(join(locale.samples, relative)).href;
   const page = await context.newPage();
@@ -118,38 +147,62 @@ async function captureLocale(context, id, locale) {
   console.log(`Screenshots (${locale.id})`);
 
   // 1. A document with the sidebar: the core claim, in one image.
+  //
+  //    The folder is expanded first. The tree loads collapsed, so the shot
+  //    that was supposed to say "you get a file tree" showed one closed
+  //    folder and the file you were already reading.
   await page.goto(fileUrl(locale.tour));
   await page.waitForSelector('.mw-doc h1', { timeout: 15_000 }).catch(() => {});
+  await page
+    .locator('[role="treeitem"][aria-expanded="false"]')
+    .first()
+    .click({ timeout: 10_000 })
+    .catch(() => {});
+  await page.waitForSelector('[role="treeitem"]', { timeout: 10_000 }).catch(() => {});
+  // Drop the focus ring the click left behind, or the shot appears to have
+  // two rows selected: the folder that was clicked and the open document.
+  await page.evaluate(() => document.activeElement?.blur());
   await shoot(page, dir, '1-document-and-sidebar');
 
-  // 2. Syntax highlighting.
+  // 2. Searching every document in the folder. The strongest thing here
+  //    that a single-file viewer cannot do, so it goes early.
   await page.goto(fileUrl(locale.rich));
   await page.waitForSelector('pre.shiki', { timeout: 25_000 }).catch(() => {});
-  await shoot(page, dir, '2-syntax-highlighting');
+  await openPanel(page, 'search');
+  await page.locator('.mw-search input[type="search"]').fill(locale.query);
+  await page.waitForSelector('.mw-search-hit', { timeout: 20_000 }).catch(() => {});
+  await shoot(page, dir, '2-search-the-folder');
 
-  // 3. Math and diagrams, further down the same document. Scrolled into view
-  //    on purpose: a screenshot of a feature has to show the feature.
+  // 3. The outline: moving inside a long document rather than between
+  //    them. A different document, with the most sections of any sample.
+  await page.goto(fileUrl(locale.outline));
+  await page.waitForSelector('.mw-doc h1', { timeout: 15_000 }).catch(() => {});
+  await openPanel(page, 'outline');
+  await shoot(page, dir, '3-document-outline');
+
+  // 4. Maths and diagrams, in the dark theme -- the features people do not
+  //    expect to work, and the theme claim, in one image. Scrolled into
+  //    view on purpose: a screenshot of a feature has to show the feature.
+  await openPanel(page, 'files');
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.goto(fileUrl(locale.rich));
   await page.waitForSelector('.mw-diagram svg', { timeout: 25_000 }).catch(() => {});
   await page.evaluate((heading) => {
     const main = document.querySelector('.mw-main');
     const target = [...document.querySelectorAll('.mw-doc h2')].find((h) =>
       h.textContent?.includes(heading),
     );
-    if (main && target) main.scrollTop = target.offsetTop - 24;
+    if (!main || !target) return;
+    /*
+     * Measured against the scroller rather than offsetTop, which is
+     * relative to whatever the nearest positioned ancestor happens to be.
+     * Using it left the heading a few pixels above the top edge, so the
+     * shot led with the bottom halves of some letters.
+     */
+    const delta = target.getBoundingClientRect().top - main.getBoundingClientRect().top;
+    main.scrollTop += delta - 20;
   }, locale.mathHeading);
-  await shoot(page, dir, '3-math-and-diagrams');
-
-  // 4. The folder view that replaces Chrome's own directory listing, in dark
-  //    theme. Two claims in one image, because there are only five.
-  await page.emulateMedia({ colorScheme: 'dark' });
-  await page.goto(`${pathToFileURL(locale.samples).href}/${locale.folder}`);
-  await page.waitForSelector('[role="tree"]', { timeout: 15_000 }).catch(() => {});
-  await page
-    .locator('[role="treeitem"]')
-    .first()
-    .click()
-    .catch(() => {});
-  await shoot(page, dir, '4-folder-browser-dark');
+  await shoot(page, dir, '4-math-and-diagrams-dark');
   await page.emulateMedia({ colorScheme: 'light' });
 
   // 5. Settings, where the privacy claim is visible rather than asserted.
@@ -157,6 +210,18 @@ async function captureLocale(context, id, locale) {
   await shoot(page, dir, '5-settings');
 
   await page.close();
+}
+
+/**
+ * Switches the sidebar to one of its tabs.
+ *
+ * By data attribute rather than by the tab's label, which is translated.
+ */
+async function openPanel(page, panel) {
+  await page
+    .locator(`[data-panel="${panel}"]`)
+    .click({ timeout: 10_000 })
+    .catch(() => {});
 }
 
 // --- Promo tile -----------------------------------------------------------
