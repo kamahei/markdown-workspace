@@ -22,6 +22,7 @@ export const ja: Record<keyof typeof en, string> = {
   skipToContent: '本文へスキップ',
   filesNav: 'ファイル',
   toggleSidebar: 'サイドバーの表示切替',
+  resizeSidebar: 'サイドバーの幅を変更',
   reload: '再読み込み',
   reloadFromDisk: 'ディスクから再読み込み',
   themeIs: 'テーマ: $1',
@@ -34,12 +35,37 @@ export const ja: Record<keyof typeof en, string> = {
   untitledDocument: 'ドキュメント',
   loading: '読み込み中…',
 
+  // --- Sidebar sections -------------------------------------------------
+  sidebarSections: 'サイドバーのセクション',
+  sidebarTabOutline: 'アウトライン',
+  sidebarTabSearch: '検索',
+  outlineEmpty: 'この文書に見出しはありません。',
+
+  // --- Extension reloaded under an open page ----------------------------
+  extensionReloadedTitle: 'Markdown Workspace が更新されました',
+  extensionReloadedBody:
+    'このページはそのまま読めますが、サイドバー・検索・設定を使うには再読み込みが必要です。',
+  reloadThisPage: 'このページを再読み込み',
+
   // --- File tree --------------------------------------------------------
   filterFilesPlaceholder: 'ファイルを絞り込む…',
   filterFilesLabel: 'ファイル名で絞り込む',
   noFilesMatchFilter: '一致するファイルはありません。',
   folderIsEmpty: 'このフォルダは空です。',
   openParentFolder: '親フォルダを開く: $1',
+
+  // --- Folder search ----------------------------------------------------
+  searchPlaceholder: 'このフォルダを検索…',
+  searchLabel: 'このフォルダ内の全文書の本文を検索します',
+  searchPrompt: '入力すると、このフォルダ内の全文書を検索します。',
+  searchNoFolder: '検索できるフォルダが開いていません。',
+  searchTooShort: '$1 文字以上入力してください。',
+  searchRunning: '検索中…',
+  searchScanning: '検索中… $1 件の文書を読みました。',
+  searchNoMatches: '一致するものはありません。',
+  searchMatchCount: '$2 件の文書で $1 件一致。',
+  searchTruncated:
+    '途中で打ち切ったため、まだあるかもしれません。検索語を絞るか、もっと小さいフォルダを開いてください。',
 
   // --- Reader and directory views ---------------------------------------
   folderCouldNotBeRead: 'このフォルダを読み取れませんでした。',
@@ -157,6 +183,9 @@ export const ja: Record<keyof typeof en, string> = {
   optionsHighlight: 'シンタックスハイライト',
   optionsMath: '数式 (KaTeX)',
   optionsDiagrams: '図 (Mermaid)',
+  optionsTableOfContents: '文書アウトライン',
+  optionsTableOfContentsHint:
+    'サイドバーに「アウトライン」タブを追加し、文書の見出しを一覧します。',
 
   // --- Options: markdown ------------------------------------------------
   optionsMarkdown: 'Markdown',
@@ -205,6 +234,7 @@ export const ja: Record<keyof typeof en, string> = {
   shortcutToggleSidebar: 'サイドバーの表示切替',
   shortcutToggleRaw: 'ソース／描画の切替',
   shortcutFocusFilter: 'ファイル絞り込みにフォーカス',
+  shortcutFocusSearch: 'フォルダ内の全文書を検索',
   shortcutCloseTab: 'アクティブなタブを閉じる（ワークスペース）',
   shortcutClearFilter: '絞り込みを解除',
   shortcutMoveTree: 'ファイルツリー内を移動',

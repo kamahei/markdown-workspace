@@ -28,6 +28,7 @@ export const en = {
   skipToContent: 'Skip to content',
   filesNav: 'Files',
   toggleSidebar: 'Toggle sidebar',
+  resizeSidebar: 'Resize the sidebar',
   reload: 'Reload',
   reloadFromDisk: 'Reload from disk',
   themeIs: 'Theme: $1',
@@ -40,12 +41,37 @@ export const en = {
   untitledDocument: 'Document',
   loading: 'Loading…',
 
+  // --- Sidebar sections -------------------------------------------------
+  sidebarSections: 'Sidebar sections',
+  sidebarTabOutline: 'Outline',
+  sidebarTabSearch: 'Search',
+  outlineEmpty: 'This document has no headings.',
+
+  // --- Extension reloaded under an open page ----------------------------
+  extensionReloadedTitle: 'Markdown Workspace was updated',
+  extensionReloadedBody:
+    'This page is still readable, but the sidebar, search and settings need a reload to work again.',
+  reloadThisPage: 'Reload this page',
+
   // --- File tree --------------------------------------------------------
   filterFilesPlaceholder: 'Filter files…',
   filterFilesLabel: 'Filter files by name',
   noFilesMatchFilter: 'No files match this filter.',
   folderIsEmpty: 'This folder is empty.',
   openParentFolder: 'Open the parent folder: $1',
+
+  // --- Folder search ----------------------------------------------------
+  searchPlaceholder: 'Search this folder…',
+  searchLabel: 'Search the text of every document in this folder',
+  searchPrompt: 'Type to search every document in this folder.',
+  searchNoFolder: 'No folder is open to search.',
+  searchTooShort: 'Type at least $1 characters.',
+  searchRunning: 'Searching…',
+  searchScanning: 'Searching… $1 documents read.',
+  searchNoMatches: 'Nothing matched.',
+  searchMatchCount: '$1 matches in $2 documents.',
+  searchTruncated:
+    'Stopped early, so there may be more. Narrow the search or open a smaller folder.',
 
   // --- Reader and directory views ---------------------------------------
   folderCouldNotBeRead: 'This folder could not be read.',
@@ -162,6 +188,9 @@ export const en = {
   optionsHighlight: 'Syntax highlighting',
   optionsMath: 'Math (KaTeX)',
   optionsDiagrams: 'Diagrams (Mermaid)',
+  optionsTableOfContents: 'Document outline',
+  optionsTableOfContentsHint:
+    'Adds an Outline tab to the sidebar, listing the document’s headings.',
 
   // --- Options: markdown ------------------------------------------------
   optionsMarkdown: 'Markdown',
@@ -210,6 +239,7 @@ export const en = {
   shortcutToggleSidebar: 'Toggle the sidebar',
   shortcutToggleRaw: 'Toggle raw / rendered',
   shortcutFocusFilter: 'Focus the file filter',
+  shortcutFocusSearch: 'Search every document in the folder',
   shortcutCloseTab: 'Close the active tab (workspace)',
   shortcutClearFilter: 'Clear the filter',
   shortcutMoveTree: 'Move through the file tree',

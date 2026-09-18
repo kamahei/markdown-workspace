@@ -8,6 +8,12 @@ export { createRenderer } from './pipeline';
 export { splitFrontMatter } from './frontmatter';
 export { slugify, SlugRegistry } from './slug';
 export { applyHeadingAnchors, scrollToFragment } from './anchors';
+export {
+  buildOutline,
+  flattenOutline,
+  headingForLine,
+  type OutlineNode,
+} from './outline';
 
 /**
  * Phase one of the render contract: source in, sanitized HTML plus phase-two

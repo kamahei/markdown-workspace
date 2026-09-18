@@ -1,3 +1,4 @@
+import { shortcutList } from '../../src/core/keyboard';
 import { expect, test } from './fixtures';
 
 /**
@@ -237,8 +238,11 @@ test.describe('the shortcut reference on the options page', () => {
     const section = page.locator('.mw-shortcut-list');
     await expect(section).toBeVisible();
 
+    // Counted against the list itself rather than against a number written
+    // here: a hardcoded count only ever says "somebody added a shortcut",
+    // and says it by failing a test about something else.
     const rows = section.locator('.mw-shortcut-row');
-    await expect(rows).toHaveCount(10);
+    await expect(rows).toHaveCount(shortcutList().length);
 
     await expect(section.getByText('Toggle the sidebar')).toBeVisible();
     await expect(section.getByText('Focus the file filter')).toBeVisible();

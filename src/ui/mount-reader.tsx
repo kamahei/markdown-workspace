@@ -14,6 +14,8 @@ import { DirectoryApp } from './DirectoryApp';
 import { post, send } from '../platform/messaging';
 import { fileUrlTransport } from '../platform/file-url-transport';
 import { loadScrollRatio, saveScrollRatio } from '../platform/document-state';
+import { loadSidebarWidth, saveSidebarWidth } from '../platform/layout-state';
+import { isExtensionAlive } from '../platform/extension-context';
 
 import './styles/theme.css';
 import './styles/app.css';
@@ -122,6 +124,9 @@ export async function mountReader(options: {
       onOpenWorkspace={openWorkspace}
       loadScroll={loadScrollRatio}
       saveScroll={saveScrollRatio}
+      loadSidebarWidth={loadSidebarWidth}
+      saveSidebarWidth={saveSidebarWidth}
+      isExtensionAlive={isExtensionAlive}
     />,
     host,
   );

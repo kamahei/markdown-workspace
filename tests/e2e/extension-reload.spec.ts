@@ -85,4 +85,43 @@ test.describe('after the extension is reloaded', () => {
     // And it is still a readable document, not a blank page.
     await expect(page.locator('.mw-doc h1')).toHaveText('Orphaned');
   });
+
+  test('says so, rather than leaving a sidebar that silently does nothing', async ({
+    context,
+    serviceWorker,
+    makeTree,
+    fileUrl,
+  }) => {
+    const root = await makeTree({ 'long.md': LONG });
+    const page = await context.newPage();
+    await page.goto(fileUrl(`${root}/long.md`));
+    await expect(page.locator('.mw-doc h1')).toBeVisible();
+
+    // Nothing to say while everything works.
+    await expect(page.getByRole('status')).toHaveCount(0);
+
+    void serviceWorker.evaluate(() => chrome.runtime.reload()).catch(() => {});
+    await expect
+      .poll(
+        async () => {
+          try {
+            await serviceWorker.evaluate(() => chrome.runtime.id);
+            return 'alive';
+          } catch {
+            return 'gone';
+          }
+        },
+        { timeout: 15_000 },
+      )
+      .toBe('gone');
+
+    // Polled every five seconds, so this has to be allowed to take one.
+    await expect(page.getByText('Markdown Workspace was updated')).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.getByRole('button', { name: 'Reload this page' })).toBeVisible();
+
+    // The document is not hidden behind the notice.
+    await expect(page.locator('.mw-doc h1')).toHaveText('Orphaned');
+  });
 });

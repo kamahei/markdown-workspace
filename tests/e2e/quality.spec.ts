@@ -77,6 +77,91 @@ test.describe('accessibility (NFR-7)', () => {
     expect(results.violations, describeViolations(results)).toEqual([]);
   });
 
+  test('the outline panel has no violations', async ({
+    context,
+    makeTree,
+    fileUrl,
+    hasFileAccess,
+  }) => {
+    test.skip(!hasFileAccess, 'needs file:// access');
+
+    // The default audit only ever saw the files tab: the other panels are
+    // hidden, and axe does not scan what is hidden. A tablist with the
+    // wrong roles or an unlabelled nav would have sailed through.
+    const root = await makeTree({
+      'doc.md': [
+        '# Title',
+        'Text.',
+        '## Section',
+        'More.',
+        '### Deeper',
+        'Even more.',
+      ].join('\n\n'),
+    });
+    const page = await context.newPage();
+    await page.goto(fileUrl(`${root}/doc.md`));
+    await expect(page.locator('.mw-doc h1')).toBeVisible();
+    await page.getByRole('tab', { name: 'Outline' }).click();
+    await expect(page.getByRole('navigation', { name: 'Outline' })).toBeVisible();
+
+    const results = await audit(page);
+    expect(results.violations, describeViolations(results)).toEqual([]);
+  });
+
+  test('the outline panel has no violations in dark theme', async ({
+    context,
+    makeTree,
+    fileUrl,
+    hasFileAccess,
+  }) => {
+    test.skip(!hasFileAccess, 'needs file:// access');
+
+    // The light theme's current-heading colour was calculated to pass and
+    // then measured, and the calculation was wrong the first time. The dark
+    // one gets measured rather than trusted for the same reason.
+    const root = await makeTree({
+      'doc.md': ['# Title', 'Text.', '## Section', 'More.'].join('\n\n'),
+    });
+    const page = await context.newPage();
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await page.goto(fileUrl(`${root}/doc.md`));
+    await expect(page.locator('.mw-doc h1')).toBeVisible();
+    await page.getByRole('tab', { name: 'Outline' }).click();
+    await expect(page.locator('.mw-outline-link[aria-current="true"]')).toBeVisible();
+
+    const results = await audit(page);
+    expect(results.violations, describeViolations(results)).toEqual([]);
+  });
+
+  test('the search panel has no violations, in either theme', async ({
+    context,
+    makeTree,
+    fileUrl,
+    hasFileAccess,
+  }) => {
+    test.skip(!hasFileAccess, 'needs file:// access');
+
+    const root = await makeTree({
+      'doc.md': ['# Title', 'A findable phrase.'].join('\n\n'),
+      'other.md': ['# Other', 'Another findable phrase.'].join('\n\n'),
+    });
+
+    for (const scheme of ['light', 'dark'] as const) {
+      const page = await context.newPage();
+      await page.emulateMedia({ colorScheme: scheme });
+      await page.goto(fileUrl(`${root}/doc.md`));
+      await expect(page.locator('.mw-doc h1')).toBeVisible();
+      await page.getByRole('tab', { name: 'Search' }).click();
+      await page.getByRole('searchbox', { name: /Search the text/ }).fill('findable');
+      // The highlight is the part with a colour decision in it.
+      await expect(page.locator('.mw-search-text mark').first()).toBeVisible();
+
+      const results = await audit(page);
+      expect(results.violations, `${scheme}: ${describeViolations(results)}`).toEqual([]);
+      await page.close();
+    }
+  });
+
   test('a document with real code, maths and a diagram has no violations', async ({
     context,
     fileUrl,
@@ -304,6 +389,45 @@ test.describe('performance (NFR-1, NFR-2)', () => {
     await page.getByLabel('Filter files by name').fill('f-4242');
     await expect(page.locator('[role="tree"]').getByText('f-4242.md')).toBeVisible();
     console.log(`  filter applied in ${Date.now() - filterStart} ms`);
+  });
+
+  test('searching a documentation-sized folder finishes promptly', async ({
+    context,
+    makeTree,
+    fileUrl,
+  }) => {
+    // 300 documents is a large handbook, and every one of them is a round
+    // trip to the service worker in reader mode. The number below is
+    // measured rather than assumed: a bug that made the walk start from
+    // the filesystem root was found exactly this way.
+    const tree: Record<string, string> = { 'index.md': '# Index\n' };
+    for (let i = 0; i < 300; i += 1) {
+      tree[`chapter-${i}/page.md`] = [
+        `# Chapter ${i}`,
+        'Ordinary prose about nothing in particular.',
+      ].join('\n\n');
+    }
+    const root = await makeTree(tree);
+
+    const page = await context.newPage();
+    await page.goto(fileUrl(`${root}/index.md`));
+    await expect(page.locator('.mw-doc h1')).toBeVisible();
+    await page.getByRole('tab', { name: 'Search' }).click();
+
+    const started = Date.now();
+    await page.getByRole('searchbox', { name: /Search the text/ }).fill('particular');
+    await expect(page.locator('.mw-search-status')).toContainText('matches in', {
+      timeout: 30_000,
+    });
+    const elapsed = Date.now() - started;
+
+    console.log(`  300 documents searched in ${elapsed} ms`);
+    // Generous, because CI machines are slow and this is a floor against
+    // something going quadratic, not a target to tune towards.
+    expect(elapsed).toBeLessThan(15_000);
+
+    // It found them all, rather than stopping early on a folder this size.
+    await expect(page.getByText(/Stopped early/)).toHaveCount(0);
   });
 
   test('a folder containing node_modules does not stall the sidebar', async ({

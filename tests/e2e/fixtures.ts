@@ -48,7 +48,7 @@ const CHANNEL = process.env.MW_BROWSER_CHANNEL ?? 'chromium';
  * `MW_UI_LANGUAGE=ja` runs the same suite in Japanese; only the tests that
  * assert the translation should care.
  */
-const UI_LANGUAGE = process.env.MW_UI_LANGUAGE ?? 'en-US';
+export const UI_LANGUAGE = process.env.MW_UI_LANGUAGE ?? 'en-US';
 
 /**
  * Extensions only load in a persistent context, so these tests launch their own

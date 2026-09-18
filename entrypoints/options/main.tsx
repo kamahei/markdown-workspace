@@ -172,6 +172,18 @@ function Options({ initial }: { initial: Settings }) {
             onChange={(width) => update({ contentWidth: width as ContentWidth })}
           />
         </Field>
+
+        {/* Not under Rendering: that section's note promises the toggles
+            there decide what gets downloaded, and this one downloads
+            nothing. The headings are already produced with the document. */}
+        <Toggle
+          label={t('optionsTableOfContents')}
+          checked={settings.features.tableOfContents}
+          onChange={(tableOfContents) =>
+            update({ features: { ...settings.features, tableOfContents } })
+          }
+        />
+        <p class="mw-options-note">{t('optionsTableOfContentsHint')}</p>
       </section>
 
       <section class="mw-options-section">

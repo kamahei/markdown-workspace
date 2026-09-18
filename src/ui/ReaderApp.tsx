@@ -1,11 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import { renderMarkdown, type RenderResult } from '@core/markdown';
+import {
+  buildOutline,
+  flattenOutline,
+  headingForLine,
+  renderMarkdown,
+  scrollToFragment,
+  type RenderResult,
+} from '@core/markdown';
 import { createSanitizer } from '@core/sanitize';
 import {
   applyContentWidth,
   applyTheme,
+  clampSidebarWidth,
   nextTheme,
   renderOptionsFrom,
+  SIDEBAR_DEFAULT,
+  SIDEBAR_MAX,
+  SIDEBAR_MIN,
   type Settings,
 } from '@core/settings';
 import type { PageInfo } from '@core/reader/classify';
@@ -15,6 +26,10 @@ import { pathToFileUrl } from '@core/fs/file-url-source';
 import { Breadcrumb, Toolbar, ToolbarButton } from './components/Toolbar';
 import { DocumentView } from './components/DocumentView';
 import { FileTree } from './components/FileTree';
+import { SidebarPanels, type SidebarPanel } from './components/SidebarPanels';
+import { SidebarResizer } from './components/SidebarResizer';
+import { Outline } from './components/Outline';
+import { SearchPanel } from './components/SearchPanel';
 import { SidebarHeader } from './components/SidebarHeader';
 import { useFileTree } from './hooks/useFileTree';
 import { useEnrichment } from './hooks/useEnrichment';
@@ -22,6 +37,12 @@ import { useSettingsSync } from './hooks/useSettingsSync';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useScrollMemory } from './hooks/useScrollMemory';
 import { useTreeFocusHandoff } from './hooks/useTreeFocusHandoff';
+import { useSidebarPanel } from './hooks/useSidebarPanel';
+import { useSidebarWidth } from './hooks/useSidebarWidth';
+import { useExtensionAlive } from './hooks/useExtensionAlive';
+import { useActiveHeading } from './hooks/useActiveHeading';
+import { useFolderSearch } from './hooks/useFolderSearch';
+import { usePendingLine } from './hooks/usePendingLine';
 import { t, themeKey } from './i18n';
 
 interface ReaderAppProps {
@@ -44,6 +65,15 @@ interface ReaderAppProps {
   /** Reading position, persisted per document (FR-30). */
   loadScroll: (path: string) => Promise<number>;
   saveScroll: (path: string, ratio: number) => void;
+  /** Sidebar width, persisted per device (FR-30). */
+  loadSidebarWidth: () => Promise<number>;
+  saveSidebarWidth: (width: number) => void;
+  /**
+   * Whether the extension behind this content script still exists.
+   *
+   * Injected rather than imported: `src/ui/` does not touch extension APIs.
+   */
+  isExtensionAlive: () => boolean;
 }
 
 export function ReaderApp({
@@ -57,6 +87,9 @@ export function ReaderApp({
   onOpenWorkspace,
   loadScroll,
   saveScroll,
+  loadSidebarWidth,
+  saveSidebarWidth,
+  isExtensionAlive,
 }: ReaderAppProps) {
   // Settings come from the broadcast as well as from local edits, so a
   // change made in the options page reaches an open document without a
@@ -66,8 +99,24 @@ export function ReaderApp({
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const scroller = useRef<HTMLElement>(null);
   const filterRef = useRef<HTMLInputElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  /** The rendered article, so the outline can follow the scroll. */
+  const docRoot = useRef<HTMLElement>(null);
 
   const documentPath = page.path ?? '';
+
+  /*
+   * The fragment this page was opened with, captured once.
+   *
+   * It used to be read from `location.hash` on every render, which was
+   * fine until the outline started pushing a fragment of its own: from
+   * then on, any later re-render handed DocumentView a *new* fragment and
+   * it scrolled there — so clicking an outline entry and then scrolling
+   * away put the reader straight back. A prop that silently changes
+   * meaning because a global moved underneath it is the bug, not the
+   * scrolling.
+   */
+  const [initialFragment] = useState(() => doc.location.hash);
   const sanitizer = useMemo(() => createSanitizer(doc.defaultView!), [doc]);
 
   const result: RenderResult = useMemo(
@@ -77,6 +126,64 @@ export function ReaderApp({
 
   const enrichment = useEnrichment(sanitizer, settings, doc);
 
+  // The renderer already emits the headings; this only gives them shape.
+  const outline = useMemo(() => buildOutline(result.headings), [result.headings]);
+  const outlineIds = useMemo(
+    () => flattenOutline(outline).map((node) => node.id),
+    [outline],
+  );
+  const activeHeading = useActiveHeading(docRoot, outlineIds, !raw);
+
+  /**
+   * Jump to a heading without reloading.
+   *
+   * Reader mode navigates between *documents* by changing the page, but a
+   * fragment within the open one is a scroll: setting `location.hash` would
+   * be a same-page navigation that re-runs nothing.
+   *
+   * The history entry carries the position being left, because the browser
+   * cannot restore it for us. Native anchor links get scroll restoration
+   * free, but only for the document scroller — this app scrolls `.mw-main`,
+   * so Back moved the address bar and nothing else. Recording the offset on
+   * the outgoing entry is what makes Back mean what it looks like it means.
+   */
+  const goToHeading = useCallback(
+    (id: string) => {
+      const root = docRoot.current;
+      const view = doc.defaultView;
+      try {
+        view?.history.replaceState({ mwScrollTop: scroller.current?.scrollTop ?? 0 }, '');
+        view?.history.pushState({ mwScrollTop: null }, '', `#${encodeURIComponent(id)}`);
+      } catch {
+        // A file:// page can refuse history writes in some configurations;
+        // the scroll below still happens, which is the part that matters.
+      }
+      if (root) scrollToFragment(root, id);
+    },
+    [doc],
+  );
+
+  /** Back and Forward between headings, since the browser cannot do it. */
+  useEffect(() => {
+    const view = doc.defaultView;
+    if (!view) return;
+
+    const onPopState = (event: PopStateEvent) => {
+      const state = event.state as { mwScrollTop?: number | null } | null;
+      const offset = state?.mwScrollTop;
+      if (typeof offset === 'number') {
+        if (scroller.current) scroller.current.scrollTop = offset;
+        return;
+      }
+      const root = docRoot.current;
+      const hash = view.location.hash;
+      if (root && hash) scrollToFragment(root, hash);
+    };
+
+    view.addEventListener('popstate', onPopState);
+    return () => view.removeEventListener('popstate', onPopState);
+  }, [doc]);
+
   const tree = useFileTree(fileSource, treeRoot);
   const { reveal, setFilter } = tree;
   const filterValue = tree.state.filter;
@@ -85,8 +192,91 @@ export function ReaderApp({
   // carried across by hand or it is lost on every Enter.
   const { restoreTreeFocus, handOffTreeFocus } = useTreeFocusHandoff(doc);
 
-  // Restored only once the document is rendered, so scrollHeight is real.
-  useScrollMemory(scroller, raw ? null : documentPath, loadScroll, saveScroll, true);
+  // And for the same reason, so does the chosen sidebar tab.
+  const [sidebarPanel, setSidebarPanel] = useSidebarPanel(doc);
+
+  const extensionAlive = useExtensionAlive(isExtensionAlive);
+
+  const { width, setWidth, nudgeWidth } = useSidebarWidth(
+    doc,
+    loadSidebarWidth,
+    saveSidebarWidth,
+    clampSidebarWidth,
+    SIDEBAR_DEFAULT,
+  );
+
+  const treeOptions = useMemo(
+    () => ({
+      showHidden: settings.fileBrowser.showHiddenFiles,
+      excludedDirectories: settings.fileBrowser.excludedDirectories,
+      sortBy: settings.fileBrowser.sortBy,
+    }),
+    [settings.fileBrowser],
+  );
+
+  const search = useFolderSearch(fileSource, treeRoot, treeOptions);
+  const { pending, handOff } = usePendingLine(doc);
+
+  /** Open a search hit: a different document, landing near the line. */
+  const openMatch = useCallback(
+    (path: string, line: number) => {
+      if (path === documentPath) {
+        // Already here, so it is only a scroll -- and nothing navigates,
+        // so there is no focus to hand across a page load.
+        const heading = headingForLine(result.headings, line);
+        const root = docRoot.current;
+        if (heading && root) scrollToFragment(root, heading.id);
+        return;
+      }
+      handOffTreeFocus();
+      handOff(path, line);
+      doc.location.href = pathToFileUrl(path);
+    },
+    [doc, documentPath, handOff, handOffTreeFocus, result.headings],
+  );
+
+  /**
+   * Land near the line a search sent us to.
+   *
+   * The match is a line in the source; the rendered page has anchors only
+   * at headings, so the nearest heading at or above the line is where this
+   * arrives. Above the first heading it stays at the top rather than
+   * guessing.
+   */
+  const landedFromSearch = pending?.path === documentPath;
+  const landed = useRef(false);
+  useEffect(() => {
+    if (!landedFromSearch || raw || landed.current) return;
+    const heading = headingForLine(result.headings, pending!.line);
+    if (!heading) return;
+    const root = docRoot.current;
+    if (!root) return;
+    // Once. This effect re-runs whenever the document is re-rendered --
+    // a settings change does that -- and without the guard the reader
+    // would be yanked back to the search hit long after arriving.
+    landed.current = true;
+    // After paint, so the document has its real height.
+    const frame = requestAnimationFrame(() => scrollToFragment(root, heading.id));
+    return () => cancelAnimationFrame(frame);
+  }, [landedFromSearch, pending, raw, result.headings]);
+
+  /*
+   * Reading position, restored once the document is rendered.
+   *
+   * Suppressed when a search sent the reader to a particular line. Both
+   * want the scroll on the same page load, and the remembered position was
+   * winning because it arrives later: it waits on a storage read, so its
+   * scroll lands after the one the search asked for. Opening a search hit
+   * and being dropped wherever you last stopped reading is the wrong
+   * answer to a question about a specific line.
+   */
+  useScrollMemory(
+    scroller,
+    raw ? null : documentPath,
+    loadScroll,
+    saveScroll,
+    !landedFromSearch,
+  );
 
   useEffect(() => {
     applyTheme(doc.documentElement, settings.theme);
@@ -135,9 +325,22 @@ export function ReaderApp({
         focusFilter: () => {
           // Revealing the sidebar first, or the filter cannot take focus.
           setSidebarVisible(true);
+          setSidebarPanel('files');
           requestAnimationFrame(() => filterRef.current?.focus());
         },
+        focusSearch: () => {
+          // The panel has to be showing before its field can take focus,
+          // and Preact has not rendered the switch yet at this point.
+          setSidebarVisible(true);
+          setSidebarPanel('search');
+          requestAnimationFrame(() => searchRef.current?.focus());
+        },
         escape: () => {
+          // The search field clears itself, so leave it alone: this handler
+          // firing as well would clear the tree's filter at the same time,
+          // from a keypress aimed at the search box.
+          if (doc.activeElement === searchRef.current) return;
+
           // The shortcut list says Escape clears the filter, so it clears the
           // filter -- from the tree as well as from the field. It used to do
           // so only when the field had focus, which meant arrowing into a
@@ -156,18 +359,52 @@ export function ReaderApp({
           if (doc.activeElement?.closest('[role="tree"]')) scroller.current?.focus();
         },
       }),
-      [doc, setFilter, filterValue],
+      [doc, setFilter, filterValue, setSidebarPanel],
     ),
   );
 
-  const treeOptions = useMemo(
-    () => ({
-      showHidden: settings.fileBrowser.showHiddenFiles,
-      excludedDirectories: settings.fileBrowser.excludedDirectories,
-      sortBy: settings.fileBrowser.sortBy,
-    }),
-    [settings.fileBrowser],
-  );
+  const panels: SidebarPanel[] = [
+    {
+      id: 'files',
+      label: t('filesNav'),
+      content: fileSource ? (
+        <FileTree
+          filterRef={filterRef}
+          autoFocus={restoreTreeFocus}
+          state={tree.state}
+          options={treeOptions}
+          onToggle={tree.toggle}
+          onOpen={openPath}
+          onFilterChange={tree.setFilter}
+        />
+      ) : (
+        <p class="mw-empty">{t('folderCouldNotBeRead')}</p>
+      ),
+    },
+  ];
+
+  if (settings.features.tableOfContents) {
+    panels.push({
+      id: 'outline',
+      label: t('sidebarTabOutline'),
+      content: (
+        <Outline nodes={outline} activeId={activeHeading} onNavigate={goToHeading} />
+      ),
+    });
+  }
+
+  panels.push({
+    id: 'search',
+    label: t('sidebarTabSearch'),
+    content: (
+      <SearchPanel
+        {...search}
+        inputRef={searchRef}
+        available={fileSource !== null}
+        onOpen={openMatch}
+      />
+    ),
+  });
 
   return (
     <div class="mw-root">
@@ -214,23 +451,41 @@ export function ReaderApp({
         />
       </Toolbar>
 
+      {extensionAlive ? null : (
+        <div class="mw-stale" role="status">
+          <div class="mw-stale-text">
+            <strong>{t('extensionReloadedTitle')}</strong> {t('extensionReloadedBody')}
+          </div>
+          <button
+            type="button"
+            class="mw-btn mw-btn-primary"
+            onClick={() => doc.location.reload()}
+          >
+            {t('reloadThisPage')}
+          </button>
+        </div>
+      )}
+
       <div class="mw-body">
         <nav class="mw-sidebar" hidden={!sidebarVisible} aria-label={t('filesNav')}>
           <SidebarHeader root={treeRoot ?? ''} onNavigateUp={openFolder} />
-          {fileSource ? (
-            <FileTree
-              filterRef={filterRef}
-              autoFocus={restoreTreeFocus}
-              state={tree.state}
-              options={treeOptions}
-              onToggle={tree.toggle}
-              onOpen={openPath}
-              onFilterChange={tree.setFilter}
-            />
-          ) : (
-            <p class="mw-empty">{t('folderCouldNotBeRead')}</p>
-          )}
+          <SidebarPanels
+            label={t('sidebarSections')}
+            panels={panels}
+            selected={sidebarPanel}
+            onSelect={setSidebarPanel}
+          />
         </nav>
+
+        {sidebarVisible ? (
+          <SidebarResizer
+            width={width}
+            min={SIDEBAR_MIN}
+            max={SIDEBAR_MAX}
+            onResize={setWidth}
+            onNudge={nudgeWidth}
+          />
+        ) : null}
 
         {/* tabIndex so the skip link and Escape can both land here: a
             plain <main> is not focusable and focus would stay behind. */}
@@ -239,11 +494,12 @@ export function ReaderApp({
             result={result}
             source={source}
             raw={raw}
-            fragment={doc.location.hash}
+            fragment={initialFragment}
             documentPath={documentPath}
             fileSource={fileSource}
             onNavigate={openPath}
             enrichment={enrichment}
+            rootRef={docRoot}
           />
         </main>
       </div>

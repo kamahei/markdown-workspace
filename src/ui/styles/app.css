@@ -468,6 +468,231 @@
   color: var(--mw-fg);
 }
 
+/* --- Extension reloaded under an open page ------------------------------ */
+
+.mw-stale {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0.75rem;
+  background: var(--mw-warning-bg);
+  border-bottom: 1px solid var(--mw-border);
+  color: var(--mw-fg);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.mw-stale-text {
+  min-width: 0;
+}
+
+/* --- Sidebar tabs ------------------------------------------------------- */
+
+.mw-sidebar-panels {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.mw-sidebar-tablist {
+  display: flex;
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--mw-border);
+}
+
+.mw-sidebar-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0.4rem 0.3rem;
+  border: 0;
+  /* The selected tab is marked by a bar drawn over this border, so the
+     unselected ones reserve the same space and nothing shifts by a pixel
+     when the selection moves. */
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--mw-fg-subtle);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.mw-sidebar-tab:hover {
+  color: var(--mw-fg);
+  background: var(--mw-bg-inset);
+}
+
+.mw-sidebar-tab[aria-selected='true'] {
+  color: var(--mw-fg);
+  border-bottom-color: var(--mw-accent);
+}
+
+/* The panel is the flex child that scrolls; its contents size themselves. */
+.mw-sidebar-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.mw-sidebar-panel[hidden] {
+  display: none;
+}
+
+/* --- Outline ------------------------------------------------------------ */
+
+.mw-outline-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0.35rem 0;
+}
+
+.mw-outline-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Depth comes from nesting rather than from a computed indent, so a
+   heading that skips a level still lines up with its real parent. */
+.mw-outline-list .mw-outline-list {
+  padding-left: 0.75rem;
+}
+
+.mw-outline-link {
+  display: block;
+  padding: 0.2rem 0.6rem;
+  color: var(--mw-fg-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  text-decoration: none;
+  /* The current-heading marker is drawn here, so every row reserves the
+     space and nothing shifts sideways as the reader scrolls. */
+  border-left: 2px solid transparent;
+  overflow-wrap: anywhere;
+}
+
+.mw-outline-link:hover {
+  color: var(--mw-fg);
+  background: var(--mw-bg-inset);
+}
+
+.mw-outline-link[aria-current='true'] {
+  color: var(--mw-accent-text);
+  border-left-color: var(--mw-accent);
+  font-weight: 600;
+}
+
+/* --- Folder search ------------------------------------------------------ */
+
+.mw-search {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.mw-search-status,
+.mw-search-progress {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0.4rem 0.6rem;
+  color: var(--mw-fg-subtle);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* Sits directly under the status line, so it does not repeat its top
+   padding. A separate class rather than a second one on the same element:
+   `.mw-search-status` then names exactly one thing. */
+.mw-search-progress {
+  padding-top: 0;
+}
+
+.mw-search-results {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.mw-search-group {
+  border-top: 1px solid var(--mw-border);
+}
+
+.mw-search-file {
+  margin: 0;
+  padding: 0.3rem 0.6rem 0.15rem;
+  color: var(--mw-fg);
+  font-size: 11px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mw-search-lines {
+  margin: 0 0 0.25rem;
+  padding: 0;
+  list-style: none;
+}
+
+.mw-search-hit {
+  display: flex;
+  gap: 0.45rem;
+  width: 100%;
+  padding: 0.15rem 0.6rem;
+  border: 0;
+  background: none;
+  color: var(--mw-fg-muted);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mw-search-hit:hover {
+  background: var(--mw-bg-inset);
+  color: var(--mw-fg);
+}
+
+.mw-search-line {
+  flex: 0 0 auto;
+  min-width: 2ch;
+  color: var(--mw-fg-subtle);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* One line per hit: the excerpt is already trimmed around the match, and
+   wrapping long matches would make the list impossible to scan. */
+.mw-search-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mw-search-text mark {
+  background: var(--mw-mark-bg);
+  /* The row's muted grey on a pale highlight is the one combination here
+     that risks failing contrast, so marked text takes the full foreground. */
+  color: var(--mw-fg);
+  border-radius: 2px;
+}
+
 /* --- Folder landing pane ------------------------------------------------ */
 
 .mw-folder-title {

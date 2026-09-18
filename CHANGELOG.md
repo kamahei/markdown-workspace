@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- A document outline. The sidebar gains an Outline tab listing the document's
+  headings, nested by depth, marking the one you are currently reading and
+  jumping to any of them. The renderer had been producing the heading list
+  since the first release and nothing was reading it; the setting that turns
+  the outline on and off had been stored, synced and likewise ignored.
+- Search across every document in the open folder, from a Search tab in the
+  sidebar or with Ctrl+Shift+F. Results are grouped by document with the
+  matching text marked, and opening one lands at the section it is in. The
+  same folders the file tree skips are skipped here, so searching a checked-out
+  repository does not mean reading node_modules.
+- The sidebar now holds more than the file tree: its contents are tabs, and
+  which one you chose survives opening the next document.
+- The sidebar can be resized, by dragging its edge or with the arrow keys
+  once the handle has focus, and the width is remembered for this device.
+  The handle's styling had been in the stylesheet since the first release
+  with nothing behind it.
+
+### Changed
+
+- Back and Forward move between the headings you jumped to from the outline,
+  returning to the position you left rather than only changing the address
+  bar. A browser restores that by itself for anchor links, but only for the
+  page's own scrollbar, and this app scrolls a pane.
+
+- Reloading or updating the extension now says so in any page left open,
+  with a button to reload it, instead of leaving a sidebar that quietly
+  does nothing. The page stays readable either way.
+- The privacy policy and the README describe what the extension actually
+  does: the sidebar width is stored, the outline and search exist, and a
+  file that downloads instead of opening has an explanation and a fix.
+
 ## [0.1.0] - 2026-09-16
 
 First release. Built from source or from the archive attached to this tag;
