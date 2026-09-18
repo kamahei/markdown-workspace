@@ -7,8 +7,8 @@ file at a time.
 Drop a `.md` file onto Chrome and it renders. Drop a **folder** onto Chrome and
 you get a sidebar file tree you can navigate without ever leaving the browser.
 
-> **Status:** feature-complete, not yet published to the Chrome Web Store.
-> Build it from source with the steps below.
+> **[Add to Chrome](https://chromewebstore.google.com/detail/markdown-workspace/fokimhgefbndlhpennnodojkfdggnmjk)** — on the Chrome Web Store since 2026-09-18.
+> Building from source works too; the steps are below.
 
 ## Why This Exists
 
@@ -67,7 +67,11 @@ extension has no backend. See [PRIVACY.md](PRIVACY.md) for the full statement.
 
 ### From the Chrome Web Store
 
-Not yet available. This section will link to the store listing at release.
+**[Markdown Workspace on the Chrome Web Store](https://chromewebstore.google.com/detail/markdown-workspace/fokimhgefbndlhpennnodojkfdggnmjk)**
+
+After installing, Chrome still needs you to allow local file access —
+see [Required Setup](#required-setup-allow-access-to-file-urls) below. The
+extension opens a page explaining it the first time it runs.
 
 ### From source (development build)
 

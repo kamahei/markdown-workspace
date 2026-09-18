@@ -155,7 +155,12 @@
       </p>
 
       <div class="actions">
-        <a class="btn btn-primary" href="https://github.com/kamahei/markdown-workspace"
+        <a
+          class="btn btn-primary"
+          href="https://chromewebstore.google.com/detail/markdown-workspace/fokimhgefbndlhpennnodojkfdggnmjk"
+          >Add to Chrome</a
+        >
+        <a class="btn" href="https://github.com/kamahei/markdown-workspace"
           >Source on GitHub</a
         >
         <a
@@ -166,8 +171,10 @@
       </div>
 
       <p class="note">
-        Not yet on the Chrome Web Store. Until it is, build it from source — the steps are
-        in the repository's README.
+        Chrome needs one thing from you after installing: open
+        <code>chrome://extensions</code>, find Markdown Workspace, click Details, and turn
+        on <strong>Allow access to file URLs</strong>. No extension can grant itself that.
+        The page that opens on install walks through it.
       </p>
 
       <h2>What it does</h2>
@@ -178,8 +185,13 @@
         small site, with no build step.
       </p>
       <ul>
+        <li>
+          An outline of the document's headings, and a search that reads every document in
+          the folder — the two things a one-file viewer cannot do.
+        </li>
         <li>Syntax highlighting, LaTeX math, and Mermaid diagrams.</li>
         <li>Light, dark, and system themes.</li>
+        <li>English and Japanese; the interface follows the browser.</li>
         <li>
           Usable without a mouse: arrow through the tree, <kbd>Enter</kbd> to open,
           <kbd>/</kbd> to filter.
