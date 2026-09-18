@@ -6,7 +6,9 @@ import {
   defaultSettings,
   DEFAULT_EXCLUDED_DIRECTORIES,
   migrateSettings,
-  type ContentWidth,
+  CONTENT_WIDTH_MAX,
+  CONTENT_WIDTH_MIN,
+  CONTENT_WIDTH_STEP,
   type MarkdownPreset,
   type Settings,
   type SortBy,
@@ -161,15 +163,23 @@ function Options({ initial }: { initial: Settings }) {
           />
         </Field>
 
-        <Field label={t('optionsContentWidth')} hint={t('optionsContentWidthHint')}>
-          <Select
+        <Field
+          label={t('optionsContentWidth', [String(settings.contentWidth)])}
+          hint={t('optionsContentWidthHint')}
+        >
+          <input
+            type="range"
+            class="mw-range"
+            min={CONTENT_WIDTH_MIN}
+            max={CONTENT_WIDTH_MAX}
+            step={CONTENT_WIDTH_STEP}
             value={settings.contentWidth}
-            options={[
-              ['narrow', t('widthNarrow')],
-              ['normal', t('widthNormal')],
-              ['wide', t('widthWide')],
-            ]}
-            onChange={(width) => update({ contentWidth: width as ContentWidth })}
+            // The percentage is in the label rather than beside the slider:
+            // a number that only appears next to the control is missed by
+            // anyone reading the label to find out what the control does.
+            onInput={(e) =>
+              update({ contentWidth: Number((e.target as HTMLInputElement).value) })
+            }
           />
         </Field>
 

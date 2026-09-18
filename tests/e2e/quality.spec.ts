@@ -430,6 +430,104 @@ test.describe('performance (NFR-1, NFR-2)', () => {
     await expect(page.getByText(/Stopped early/)).toHaveCount(0);
   });
 
+  test('the text column follows the width of the window', async ({
+    context,
+    extensionId,
+    makeTree,
+    fileUrl,
+  }) => {
+    /*
+     * The column used to be a fixed width. `--mw-measure` was `72ch` on
+     * `.mw-pane`, and `ch` resolves against the font of the element it sits
+     * on -- the 14px interface font, not the text inside it -- so it was
+     * neither 72 characters nor responsive to anything. A reader on a wide
+     * monitor got a 495px ribbon with most of the screen empty beside it,
+     * and Japanese lines broke after 31 characters.
+     *
+     * It is a share of the reading pane now, floored and capped. This
+     * asserts the share: that widening the window widens the text, which
+     * is the property that was missing, and that neither end runs away.
+     */
+    const root = await makeTree({
+      'doc.md': ['# Doc', 'x '.repeat(400).trim()].join('\n\n'),
+    });
+    const page = await context.newPage();
+
+    /** Rendered width of a paragraph, and what it is as a share of the pane. */
+    const measure = async (viewport: number) => {
+      await page.setViewportSize({ width: viewport, height: 900 });
+      await page.goto(fileUrl(`${root}/doc.md`));
+      await expect(page.locator('.mw-doc h1')).toBeVisible();
+      return page.evaluate(() => {
+        const p = document.querySelector('.mw-doc > p') as HTMLElement;
+        const main = document.querySelector('.mw-main') as HTMLElement;
+        const probe = document.createElement('span');
+        probe.style.font = getComputedStyle(p).font;
+        probe.style.whiteSpace = 'pre';
+        p.appendChild(probe);
+        probe.textContent = 'あいうえおかきくけこ';
+        const cjk = probe.getBoundingClientRect().width / 10;
+        probe.remove();
+        const width = p.getBoundingClientRect().width;
+        return {
+          width,
+          share: width / main.getBoundingClientRect().width,
+          cjk: width / cjk,
+        };
+      });
+    };
+
+    const narrowWindow = await measure(1100);
+    const wideWindow = await measure(1920);
+
+    console.log(
+      `  1100px: ${Math.round(narrowWindow.width)}px text, ` +
+        `${Math.round(narrowWindow.share * 100)}% of the pane, ` +
+        `~${Math.round(narrowWindow.cjk)} CJK characters per line`,
+    );
+    console.log(
+      `  1920px: ${Math.round(wideWindow.width)}px text, ` +
+        `${Math.round(wideWindow.share * 100)}% of the pane, ` +
+        `~${Math.round(wideWindow.cjk)} CJK characters per line`,
+    );
+
+    // The property the reader asked for, and the one a fixed measure fails.
+    expect(wideWindow.width, 'a wider window gives a wider column').toBeGreaterThan(
+      narrowWindow.width * 1.5,
+    );
+
+    // Neither end runs away. The upper bound is loose on purpose: how much
+    // of the window the text should use is a preference, not a fact, and
+    // the setting is where it belongs. What this pins is that there is
+    // still a margin, and that a small window still gets a line of text
+    // rather than a ribbon.
+    expect(wideWindow.share, 'still has a margin').toBeLessThan(0.92);
+    expect(narrowWindow.share, 'not a ribbon').toBeGreaterThan(0.5);
+    expect(narrowWindow.cjk, 'Japanese stays a readable line').toBeGreaterThan(30);
+
+    // And the setting still moves it. It is a percentage now rather than
+    // three names, so this drives the slider to each end of its range.
+    const choose = async (percent: number) => {
+      const options = await context.newPage();
+      await options.goto(`chrome-extension://${extensionId}/options.html`);
+      const slider = options.getByRole('slider');
+      await slider.fill(String(percent));
+      // `fill` on a range input dispatches input, which is what the page
+      // listens to; give the write to storage a moment to land.
+      await expect(slider).toHaveValue(String(percent));
+      await options.waitForTimeout(400);
+      await options.close();
+      return measure(1920);
+    };
+
+    const narrower = await choose(50);
+    const wider = await choose(96);
+    expect(narrower.width).toBeLessThan(wideWindow.width);
+    expect(wider.width).toBeGreaterThan(wideWindow.width);
+    // The slider spans a range worth having: the ends are far apart.
+    expect(wider.width).toBeGreaterThan(narrower.width * 1.6);
+  });
+
   test('a folder containing node_modules does not stall the sidebar', async ({
     context,
     makeTree,

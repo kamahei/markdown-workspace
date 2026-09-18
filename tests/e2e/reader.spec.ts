@@ -1,3 +1,4 @@
+import { SETTINGS_SCHEMA_VERSION } from '../../src/core/settings';
 import { expect, test } from './fixtures';
 
 /**
@@ -220,6 +221,8 @@ test.describe('extension surfaces', () => {
       async () => await chrome.runtime.sendMessage({ type: 'getSettings' }),
     );
     expect(settings.allowedOrigins).toEqual([]);
-    expect(settings.schemaVersion).toBe(1);
+    // Against the constant, not a literal: a schema bump is a routine
+    // event and should not fail a test about allowed origins.
+    expect(settings.schemaVersion).toBe(SETTINGS_SCHEMA_VERSION);
   });
 });

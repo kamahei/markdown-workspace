@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+  clampContentWidth,
   clampSidebarWidth,
+  CONTENT_WIDTH_DEFAULT,
+  CONTENT_WIDTH_MAX,
+  CONTENT_WIDTH_MIN,
+  CONTENT_WIDTH_STEP,
   defaultSettings,
+  LEGACY_CONTENT_WIDTHS,
   migrateSettings,
   nextTheme,
   normalizeSettings,
@@ -53,12 +59,12 @@ describe('normalizeSettings', () => {
   it('falls back field by field, so one bad value costs only that field', () => {
     const result = normalizeSettings({
       theme: 'chartreuse',
-      contentWidth: 'wide',
+      contentWidth: 74,
       markdown: { preset: 'gfm', linkify: 'yes' },
     });
     expect(result.theme).toBe('system');
     // The valid neighbours survive.
-    expect(result.contentWidth).toBe('wide');
+    expect(result.contentWidth).toBe(74);
     expect(result.markdown.preset).toBe('gfm');
     expect(result.markdown.linkify).toBe(true);
   });
@@ -108,9 +114,11 @@ describe('migrateSettings', () => {
   it('treats a record with no version as version 0 and migrates it', () => {
     const migrated = migrateSettings({ theme: 'dark', contentWidth: 'narrow' });
     expect(migrated.schemaVersion).toBe(SETTINGS_SCHEMA_VERSION);
-    // A migration must not lose settings the user already chose.
+    // A migration must not lose settings the user already chose. The width
+    // was one of three names before it was a percentage, and 'narrow' has
+    // to come out as the number that name used to mean.
     expect(migrated.theme).toBe('dark');
-    expect(migrated.contentWidth).toBe('narrow');
+    expect(migrated.contentWidth).toBe(LEGACY_CONTENT_WIDTHS.narrow);
   });
 
   it('passes a current-version record through', () => {
@@ -247,6 +255,37 @@ describe('document state (FR-30)', () => {
 
   it('prunes nothing when under the limit', () => {
     expect(selectExpiredKeys([{ key: 'a', lastOpenedAt: 1 }], 10)).toEqual([]);
+  });
+});
+
+describe('content width, which used to be three names', () => {
+  it('carries each old name to the width it measured', () => {
+    for (const [name, percent] of Object.entries(LEGACY_CONTENT_WIDTHS)) {
+      expect(migrateSettings({ contentWidth: name }).contentWidth, name).toBe(percent);
+    }
+  });
+
+  it('keeps a percentage a reader has already chosen', () => {
+    expect(migrateSettings({ schemaVersion: 2, contentWidth: 67 }).contentWidth).toBe(67);
+  });
+
+  it('pulls a value outside the range back to the nearest bound', () => {
+    expect(clampContentWidth(5)).toBe(CONTENT_WIDTH_MIN);
+    expect(clampContentWidth(400)).toBe(CONTENT_WIDTH_MAX);
+  });
+
+  it('falls back on a value that is not a width at all', () => {
+    // A stored setting can be anything if a write was interrupted, and a
+    // NaN share resolves to no width at all rather than to a default.
+    for (const junk of [Number.NaN, 'enormous', null, {}, undefined]) {
+      expect(clampContentWidth(junk)).toBe(CONTENT_WIDTH_DEFAULT);
+    }
+  });
+
+  it('has a default inside its own bounds, on a step the slider can reach', () => {
+    expect(CONTENT_WIDTH_DEFAULT).toBeGreaterThanOrEqual(CONTENT_WIDTH_MIN);
+    expect(CONTENT_WIDTH_DEFAULT).toBeLessThanOrEqual(CONTENT_WIDTH_MAX);
+    expect((CONTENT_WIDTH_DEFAULT - CONTENT_WIDTH_MIN) % CONTENT_WIDTH_STEP).toBe(0);
   });
 });
 

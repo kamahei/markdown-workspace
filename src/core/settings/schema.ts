@@ -7,10 +7,13 @@
  * document from rendering.
  */
 
-export const SETTINGS_SCHEMA_VERSION = 1;
+import { clampContentWidth, CONTENT_WIDTH_DEFAULT } from './layout';
+
+export const SETTINGS_SCHEMA_VERSION = 2;
 
 export type ThemeMode = 'light' | 'dark' | 'system';
-export type ContentWidth = 'narrow' | 'normal' | 'wide';
+/** Percentage of the reading pane a line of text uses. See layout.ts. */
+export type ContentWidth = number;
 export type MarkdownPreset = 'commonmark' | 'gfm';
 export type SortBy = 'name' | 'modified';
 
@@ -63,7 +66,7 @@ export function defaultSettings(): Settings {
   return {
     schemaVersion: SETTINGS_SCHEMA_VERSION,
     theme: 'system',
-    contentWidth: 'normal',
+    contentWidth: CONTENT_WIDTH_DEFAULT,
     features: {
       highlight: true,
       math: true,
@@ -90,7 +93,6 @@ export function defaultSettings(): Settings {
 // --- Validation -----------------------------------------------------------
 
 const THEMES: ThemeMode[] = ['light', 'dark', 'system'];
-const WIDTHS: ContentWidth[] = ['narrow', 'normal', 'wide'];
 const PRESETS: MarkdownPreset[] = ['commonmark', 'gfm'];
 const SORTS: SortBy[] = ['name', 'modified'];
 
@@ -136,7 +138,7 @@ export function normalizeSettings(value: unknown): Settings {
   return {
     schemaVersion: SETTINGS_SCHEMA_VERSION,
     theme: pick(value.theme, THEMES, base.theme),
-    contentWidth: pick(value.contentWidth, WIDTHS, base.contentWidth),
+    contentWidth: clampContentWidth(value.contentWidth),
     features: {
       highlight: bool(features.highlight, base.features.highlight),
       math: bool(features.math, base.features.math),
@@ -177,6 +179,16 @@ type Migration = (value: Record<string, unknown>) => Record<string, unknown>;
  */
 const MIGRATIONS: Record<number, Migration> = {
   0: (value) => ({ ...value, schemaVersion: 1 }),
+  // contentWidth stopped being 'narrow' | 'normal' | 'wide' and became a
+  // percentage. clampContentWidth understands the old names, so this only
+  // has to carry the value across and move the version along -- written
+  // out rather than skipped, because a migration that looks like a no-op
+  // is the one nobody notices is missing.
+  1: (value) => ({
+    ...value,
+    contentWidth: clampContentWidth(value.contentWidth),
+    schemaVersion: 2,
+  }),
 };
 
 /** Applies migrations in order, then normalizes. Never throws. */

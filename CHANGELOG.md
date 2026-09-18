@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The text column follows the width of the window. It was a fixed width
+  that ignored the window entirely, so a wide monitor got a narrow ribbon
+  with most of the screen empty beside it — and Japanese lines broke after
+  31 characters, well under what a Japanese line wants. The cause was the
+  unit: the measure was set in `ch` on an element carrying the 14px
+  interface font rather than the text's own, so it was neither the 72
+  characters it claimed nor responsive to anything.
+- Content width is a percentage you choose, not one of three named sizes.
+  How much of a window text should fill depends on the monitor, the script
+  and the reader, and three buckets handed everyone the same compromise.
+  Settings already chosen are carried across.
+
 ## [0.2.0] - 2026-09-18
 
 ### Added

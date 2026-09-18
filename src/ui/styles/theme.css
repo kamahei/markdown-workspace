@@ -65,22 +65,32 @@
   --mw-font-size: 16px;
   --mw-line-height: 1.7;
 
-  /* Measure (FR: contentWidth setting) */
-  --mw-measure: 72ch;
+  /*
+   * Measure: how wide a line of body text gets.
+   *
+   * `--mw-content-share` is the reader's setting, a percentage of the
+   * reading pane, written by applyContentWidth(). The default here is what
+   * applies before that runs and for any surface that never calls it.
+   *
+   * Floored, not capped. The floor keeps a narrow window or an open sidebar
+   * from squeezing the text into a ribbon. There is no ceiling because the
+   * percentage is the control: a hidden cap that made the slider stop doing
+   * anything past some width is exactly the behaviour this replaced.
+   *
+   * `rem`, not `ch`. `ch` resolves against the font of the element it sits
+   * on, and that element -- `.mw-pane` -- carries the 14px interface font
+   * while the text inside it is `--mw-font-size`. So the original `72ch`
+   * never meant 72 of anything anybody reads: it measured 72 zeroes of the
+   * chrome font and produced about 65 Latin characters, or 31 Japanese
+   * ones, at every window size.
+   */
+  --mw-measure: max(30rem, var(--mw-content-share, 82%));
 
   /* Metrics */
   --mw-radius: 6px;
   --mw-radius-lg: 10px;
   --mw-toolbar-height: 40px;
   --mw-sidebar-width: 260px;
-}
-
-:root[data-content-width='narrow'] {
-  --mw-measure: 60ch;
-}
-
-:root[data-content-width='wide'] {
-  --mw-measure: 92ch;
 }
 
 /* Dark by OS preference, unless the user explicitly chose light. */

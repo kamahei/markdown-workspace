@@ -1,4 +1,5 @@
 import type { ContentWidth, ThemeMode } from './schema';
+import { clampContentWidth } from './layout';
 
 /**
  * Applies the theme to a document root (FR-27).
@@ -16,9 +17,16 @@ export function applyTheme(root: HTMLElement, theme: ThemeMode): void {
   else root.setAttribute('data-theme', theme);
 }
 
+/**
+ * Sets how much of the reading pane a line of text uses.
+ *
+ * A custom property rather than an attribute per named size, because the
+ * setting is now a percentage: there is no fixed set of values to write
+ * selectors for. The stylesheet floors it so a small window still gets a
+ * line of text rather than a squeezed column.
+ */
 export function applyContentWidth(root: HTMLElement, width: ContentWidth): void {
-  if (width === 'normal') root.removeAttribute('data-content-width');
-  else root.setAttribute('data-content-width', width);
+  root.style.setProperty('--mw-content-share', `${clampContentWidth(width)}%`);
 }
 
 /** The theme actually in effect, for renderers that need a concrete value. */

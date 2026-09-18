@@ -326,6 +326,14 @@
   border-bottom: 1px solid var(--mw-border);
 }
 
+/* The content-width slider. Full width so the track itself suggests the
+   thing it controls: how much of the area the text will take. */
+.mw-range {
+  width: 100%;
+  max-width: 320px;
+  accent-color: var(--mw-accent);
+}
+
 .mw-input {
   width: 100%;
   height: 26px;
