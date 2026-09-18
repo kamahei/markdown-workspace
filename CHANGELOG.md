@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-18
+
 ### Added
 
 - A document outline. The sidebar gains an Outline tab listing the document's
@@ -42,8 +44,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.0] - 2026-09-16
 
-First release. Built from source or from the archive attached to this tag;
-the Chrome Web Store listing is not live yet.
+First release. Published to the Chrome Web Store on 2026-09-18, and
+buildable from source or from the archive attached to this tag.
 
 ### Added
 
@@ -124,5 +126,6 @@ the Chrome Web Store listing is not live yet.
 - No remote code, no analytics, no network request to anything but the document
   being read. The build is checked for this on every commit.
 
-[Unreleased]: https://github.com/kamahei/markdown-workspace/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/kamahei/markdown-workspace/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/kamahei/markdown-workspace/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/kamahei/markdown-workspace/releases/tag/v0.1.0
