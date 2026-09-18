@@ -175,7 +175,7 @@ export const en = {
   optionsAppearance: 'Appearance',
   optionsTheme: 'Theme',
   optionsThemeHint: 'System follows your operating system setting.',
-  optionsContentWidth: 'Content width: $1% of the window',
+  optionsContentWidth: 'Content width',
   optionsContentWidthHint:
     'How much of the reading area a line of text uses. The column follows the window, so widening the window widens the text.',
 

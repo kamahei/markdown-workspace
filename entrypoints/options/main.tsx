@@ -1,5 +1,5 @@
 import { render } from 'preact';
-import { useCallback, useEffect, useState } from 'preact/hooks';
+import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import {
   applyContentWidth,
   applyTheme,
@@ -24,6 +24,9 @@ import '@ui/styles/app.css';
 import '@ui/styles/options.css';
 import { interpolate, t, type MessageKey } from '@ui/i18n';
 import { useBrowserTranslations } from '../../src/platform/i18n';
+
+/** How long a continuously-firing control settles before it is saved. */
+const SAVE_DELAY_MS = 300;
 
 /** Settings page (FR-26, FR-27, FR-31). */
 function Options({ initial }: { initial: Settings }) {
@@ -67,6 +70,54 @@ function Options({ initial }: { initial: Settings }) {
     },
     [persist],
   );
+
+  /*
+   * The same, for a control that fires continuously.
+   *
+   * A checkbox or a select produces one change and one write. A slider
+   * produces one per step: dragging the content-width slider once wrote to
+   * `storage.sync` fifteen times, and Chrome allows a hundred and twenty
+   * writes a minute. Eight drags and it starts refusing them -- which the
+   * page reports honestly as "that setting was not saved", having done
+   * nothing wrong except ask too often.
+   *
+   * The value still moves as it is dragged, so the label and the preview
+   * keep up. Only the write waits.
+   */
+  const pendingSave = useRef<Settings | null>(null);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flushSave = useCallback(() => {
+    if (saveTimer.current !== null) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
+    const next = pendingSave.current;
+    pendingSave.current = null;
+    if (next) persist(next);
+  }, [persist]);
+
+  const updateContinuous = useCallback(
+    (patch: Partial<Settings>) => {
+      setSettings((prev) => {
+        const next = { ...prev, ...patch };
+        pendingSave.current = next;
+        return next;
+      });
+      if (saveTimer.current !== null) clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(flushSave, SAVE_DELAY_MS);
+    },
+    [flushSave],
+  );
+
+  // A page closed inside the delay would lose the last move of the slider.
+  useEffect(() => {
+    window.addEventListener('pagehide', flushSave);
+    return () => {
+      window.removeEventListener('pagehide', flushSave);
+      flushSave();
+    };
+  }, [flushSave]);
 
   useEffect(() => {
     applyTheme(document.documentElement, settings.theme);
@@ -163,24 +214,34 @@ function Options({ initial }: { initial: Settings }) {
           />
         </Field>
 
-        <Field
-          label={t('optionsContentWidth', [String(settings.contentWidth)])}
-          hint={t('optionsContentWidthHint')}
-        >
-          <input
-            type="range"
-            class="mw-range"
-            min={CONTENT_WIDTH_MIN}
-            max={CONTENT_WIDTH_MAX}
-            step={CONTENT_WIDTH_STEP}
-            value={settings.contentWidth}
-            // The percentage is in the label rather than beside the slider:
-            // a number that only appears next to the control is missed by
-            // anyone reading the label to find out what the control does.
-            onInput={(e) =>
-              update({ contentWidth: Number((e.target as HTMLInputElement).value) })
-            }
-          />
+        <Field label={t('optionsContentWidth')} hint={t('optionsContentWidthHint')}>
+          <div class="mw-range-row">
+            <input
+              type="range"
+              class="mw-range"
+              min={CONTENT_WIDTH_MIN}
+              max={CONTENT_WIDTH_MAX}
+              step={CONTENT_WIDTH_STEP}
+              value={settings.contentWidth}
+              /*
+               * The percentage rides on the value, not on the label. Putting
+               * it in the label meant the control's *name* changed on every
+               * step, so a screen reader read "Content width: 62% of the
+               * window, 62" -- the number twice, and a name that is not a
+               * name. aria-valuetext replaces the bare number instead.
+               */
+              aria-valuetext={`${settings.contentWidth}%`}
+              onInput={(e) =>
+                updateContinuous({
+                  contentWidth: Number((e.target as HTMLInputElement).value),
+                })
+              }
+            />
+            {/* For eyes only: the slider already tells a screen reader. */}
+            <span class="mw-range-value" aria-hidden="true">
+              {settings.contentWidth}%
+            </span>
+          </div>
         </Field>
 
         {/* Not under Rendering: that section's note promises the toggles

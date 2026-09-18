@@ -91,6 +91,95 @@ test.describe('options page (FR-26)', () => {
     await expect.poll(excluded).toContain('node_modules');
   });
 
+  test('the width slider keeps its name and reports its value', async ({
+    context,
+    extensionId,
+  }) => {
+    /*
+     * The percentage was in the label at first, so the control's *name*
+     * changed on every step of a drag: a screen reader read out "Content
+     * width: 62% of the window, 62" -- the number twice, and a name that
+     * is not a name. The value belongs on the value.
+     */
+    const page = await context.newPage();
+    await page.goto(`chrome-extension://${extensionId}/options.html`);
+    const slider = page.getByRole('slider');
+    await expect(slider).toBeVisible();
+
+    const name = () =>
+      slider.evaluate(
+        (el) => el.closest('label')?.querySelector('.mw-field-label')?.textContent ?? '',
+      );
+
+    const before = await name();
+    await slider.fill('62');
+    await expect(slider).toHaveAttribute('aria-valuetext', '62%');
+    expect(await name(), 'the name is a name, not a readout').toBe(before);
+
+    await slider.fill('90');
+    await expect(slider).toHaveAttribute('aria-valuetext', '90%');
+    expect(await name()).toBe(before);
+    // And the reader can still see the number.
+    await expect(page.locator('.mw-range-value')).toHaveText('90%');
+  });
+
+  test('dragging the width slider writes once, not once per step', async ({
+    context,
+    extensionId,
+    serviceWorker,
+  }) => {
+    /*
+     * A checkbox or a select produces one change and one write. A slider
+     * produces one per step, and this one wrote to `storage.sync` fifteen
+     * times for a single drag. Chrome allows a hundred and twenty writes a
+     * minute, so eight drags and it starts refusing them -- and the page
+     * reports that honestly as "that setting was not saved", having done
+     * nothing wrong except ask too often.
+     */
+    await serviceWorker.evaluate(() => {
+      const counter = globalThis as unknown as { __sets: number };
+      counter.__sets = 0;
+      const original = chrome.storage.sync.set.bind(chrome.storage.sync);
+      chrome.storage.sync.set = ((items: object) => {
+        counter.__sets += 1;
+        return original(items);
+      }) as typeof chrome.storage.sync.set;
+    });
+
+    const page = await context.newPage();
+    await page.goto(`chrome-extension://${extensionId}/options.html`);
+    const slider = page.getByRole('slider');
+    await expect(slider).toBeVisible();
+
+    const box = (await slider.boundingBox())!;
+    await page.mouse.move(box.x + box.width * 0.5, box.y + box.height / 2);
+    await page.mouse.down();
+    for (let step = 0; step <= 20; step += 1) {
+      await page.mouse.move(
+        box.x + box.width * (0.5 + (step / 20) * 0.45),
+        box.y + box.height / 2,
+      );
+    }
+    await page.mouse.up();
+    await page.waitForTimeout(1200);
+
+    const writes = await serviceWorker.evaluate(
+      () => (globalThis as unknown as { __sets: number }).__sets,
+    );
+    expect(writes, 'storage writes for one drag').toBeLessThanOrEqual(2);
+
+    // And what settled in storage is what the slider ended up showing:
+    // debouncing must not drop the last move.
+    const shown = Number(await slider.inputValue());
+    const stored = await serviceWorker.evaluate(async () => {
+      const all = await chrome.storage.sync.get(null);
+      const key = Object.keys(all)[0];
+      return key ? (all[key] as { contentWidth?: number }).contentWidth : undefined;
+    });
+    expect(stored).toBe(shown);
+    expect(page.locator('.mw-options-error')).toHaveCount(0);
+  });
+
   test('requires confirmation before resetting (FR-31)', async ({
     context,
     extensionId,

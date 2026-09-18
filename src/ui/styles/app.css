@@ -326,12 +326,28 @@
   border-bottom: 1px solid var(--mw-border);
 }
 
-/* The content-width slider. Full width so the track itself suggests the
-   thing it controls: how much of the area the text will take. */
+/* The content-width slider, with its value beside it. The track is wide
+   so it suggests the thing it controls: how much of the area text takes. */
+.mw-range-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: 380px;
+}
+
 .mw-range {
-  width: 100%;
-  max-width: 320px;
+  flex: 1 1 auto;
+  min-width: 0;
   accent-color: var(--mw-accent);
+}
+
+.mw-range-value {
+  flex: 0 0 auto;
+  /* Fixed width, so the slider does not shift as the number changes. */
+  min-width: 4ch;
+  text-align: right;
+  color: var(--mw-fg-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .mw-input {

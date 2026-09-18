@@ -170,7 +170,7 @@ export const ja: Record<keyof typeof en, string> = {
   optionsAppearance: '外観',
   optionsTheme: 'テーマ',
   optionsThemeHint: '「システム」は OS の設定に従います。',
-  optionsContentWidth: '本文の幅：ウィンドウの $1%',
+  optionsContentWidth: '本文の幅',
   optionsContentWidthHint:
     '本文の行が表示領域のどれだけを使うか。ウィンドウを広げれば本文も広がります。',
 
