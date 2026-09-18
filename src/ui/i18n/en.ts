@@ -22,7 +22,7 @@ export const en = {
   // --- Extension identity, also used for the store listing --------------
   extName: 'Markdown Workspace',
   extDescription:
-    'Read Markdown files and whole folders in Chrome, with a built-in file browser. Everything stays on your device.',
+    'Read Markdown files and whole folders in Chrome. Built-in file browser, outline and search. Everything stays on your device.',
 
   // --- Shared chrome ----------------------------------------------------
   skipToContent: 'Skip to content',

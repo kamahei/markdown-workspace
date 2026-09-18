@@ -16,7 +16,7 @@ export const ja: Record<keyof typeof en, string> = {
   // --- Extension identity, also used for the store listing --------------
   extName: 'Markdown Workspace',
   extDescription:
-    'Chrome で Markdown ファイルを、フォルダごと読めます。ファイルブラウザ内蔵。すべて端末内で完結します。',
+    'Chrome で Markdown ファイルを、フォルダごと読めます。ファイルブラウザ・アウトライン・フォルダ内検索を内蔵。すべて端末内で完結。',
 
   // --- Shared chrome ----------------------------------------------------
   skipToContent: '本文へスキップ',
