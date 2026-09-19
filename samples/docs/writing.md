@@ -51,3 +51,36 @@ Workspace
 
 Reader
 : What you get when you open a single file directly.
+
+## Alerts
+
+GitHub's five callout kinds render the same way here, which is the point:
+a `docs/` folder written for GitHub should not look different when you read
+it from disk.
+
+> [!NOTE]
+> Useful to know, but you can keep reading without it.
+
+> [!TIP]
+> A shortcut. Try <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> to search
+> every document in this folder at once.
+
+> [!IMPORTANT]
+> Chrome will not let an extension read local files until you allow it.
+
+> [!WARNING]
+> `pnpm build` overwrites the contents of `.output/`.
+
+> [!CAUTION]
+> Resetting the extension clears every folder it remembers, including the
+> permission to reopen them.
+
+Anything else in the same shape stays an ordinary quote:
+
+> [!NOPE]
+> Undefined syntax is left alone rather than guessed at.
+
+## Emoji
+
+Shortcodes render too: `:tada:` becomes :tada:, and a release note full of
+:rocket: :sparkles: :bug: reads the way its author meant it to.

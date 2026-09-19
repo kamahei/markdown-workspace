@@ -48,6 +48,9 @@ const LOCALES = [
        sections: an outline of four entries looks like nothing, and two
        screenshots of the same page look like a mistake. */
     outline: 'docs/writing.md',
+    /* The outline shot scrolls here, so one image carries two things: the
+       heading list on the left and the callouts it navigates to. */
+    outlineSection: 'Alerts',
   },
   {
     id: 'ja',
@@ -59,6 +62,7 @@ const LOCALES = [
     mathHeading: '数式',
     query: 'フォルダ',
     outline: 'docs/書式.md',
+    outlineSection: 'アラート',
   },
 ];
 
@@ -178,6 +182,12 @@ async function captureLocale(context, id, locale) {
   await page.goto(fileUrl(locale.outline));
   await page.waitForSelector('.mw-doc h1', { timeout: 15_000 }).catch(() => {});
   await openPanel(page, 'outline');
+  // Jump to the section with the callouts in it: the outline alone is a
+  // list of words, and the same image can show what the list is for.
+  await page
+    .locator(`.mw-outline-link:text-is("${locale.outlineSection}")`)
+    .click({ timeout: 10_000 })
+    .catch(() => {});
   await shoot(page, dir, '3-document-outline');
 
   // 4. Maths and diagrams, in the dark theme -- the features people do not

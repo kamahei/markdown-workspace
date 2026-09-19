@@ -47,6 +47,9 @@
   --mw-warning: #8a5b00;
   --mw-warning-bg: #fdf4e3;
   --mw-success: #1a7f37;
+  /* "Important" alerts. Text on the page background, so it has to
+     carry 4.5:1 there -- checked by the axe audit, not by eye. */
+  --mw-attention: #7c3aed;
 
   /* Syntax host surface */
   --mw-code-bg: #f6f7f9;
@@ -124,6 +127,7 @@
     --mw-warning: #e0b341;
     --mw-warning-bg: #2b2415;
     --mw-success: #56d364;
+    --mw-attention: #c4a2ff;
 
     --mw-code-bg: #1a1e24;
     --mw-code-fg: #e4e9ef;
@@ -164,6 +168,7 @@
   --mw-warning: #e0b341;
   --mw-warning-bg: #2b2415;
   --mw-success: #56d364;
+  --mw-attention: #c4a2ff;
 
   --mw-code-bg: #1a1e24;
   --mw-code-fg: #e4e9ef;

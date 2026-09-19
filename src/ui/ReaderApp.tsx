@@ -43,7 +43,7 @@ import { useExtensionAlive } from './hooks/useExtensionAlive';
 import { useActiveHeading } from './hooks/useActiveHeading';
 import { useFolderSearch } from './hooks/useFolderSearch';
 import { usePendingLine } from './hooks/usePendingLine';
-import { t, themeKey } from './i18n';
+import { alertLabels, t, themeKey } from './i18n';
 
 interface ReaderAppProps {
   page: PageInfo;
@@ -120,7 +120,12 @@ export function ReaderApp({
   const sanitizer = useMemo(() => createSanitizer(doc.defaultView!), [doc]);
 
   const result: RenderResult = useMemo(
-    () => renderMarkdown(source, sanitizer, renderOptionsFrom(settings)),
+    () =>
+      renderMarkdown(source, sanitizer, {
+        ...renderOptionsFrom(settings),
+        // The renderer cannot translate; the catalogue lives here.
+        alertLabels: alertLabels(),
+      }),
     [source, sanitizer, settings],
   );
 

@@ -127,6 +127,7 @@ export const ja: Record<keyof typeof en, string> = {
   onboardingStep3: '{1} を有効にする',
   onboardingStep3Toggle: 'ファイルの URL へのアクセスを許可する',
   copyAddress: 'アドレスをコピー',
+  copyCode: 'コードをコピー',
   copied: 'コピーしました',
   onboardingNotEnabled: 'まだ有効になっていません。',
   onboardingNotEnabledBody:
@@ -249,6 +250,13 @@ export const ja: Record<keyof typeof en, string> = {
   optionsResetConfirm: 'はい、すべてリセットします',
   optionsResetting: 'リセット中…',
   optionsCancel: 'キャンセル',
+
+  // --- GitHub alert blocks ----------------------------------------------
+  alertNote: 'メモ',
+  alertTip: 'ヒント',
+  alertImportant: '重要',
+  alertWarning: '警告',
+  alertCaution: '注意',
 
   // --- Enrichment failures ----------------------------------------------
   diagramFailed: 'この図を描画できませんでした',

@@ -7,6 +7,12 @@ export * from './types';
 export { createRenderer } from './pipeline';
 export { splitFrontMatter } from './frontmatter';
 export { slugify, SlugRegistry } from './slug';
+export {
+  ALERT_KINDS,
+  DEFAULT_ALERT_LABELS,
+  type AlertKind,
+  type AlertLabels,
+} from './alert-plugin';
 export { applyHeadingAnchors, scrollToFragment } from './anchors';
 export {
   buildOutline,

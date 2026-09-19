@@ -162,6 +162,42 @@ test.describe('accessibility (NFR-7)', () => {
     }
   });
 
+  test('every alert kind passes contrast, in both themes', async ({
+    context,
+    makeTree,
+    fileUrl,
+    hasFileAccess,
+  }) => {
+    test.skip(!hasFileAccess, 'needs file:// access');
+
+    /*
+     * Five kinds times two themes is ten colour decisions, and the last
+     * thing in this project to colour text failed WCAG AA by a tenth of a
+     * point. The colours are calculated by nobody; axe judges them.
+     */
+    const doc = ['# Alerts']
+      .concat(
+        ['NOTE', 'TIP', 'IMPORTANT', 'WARNING', 'CAUTION'].map(
+          (kind) => `> [!${kind}]
+> Body text for the ${kind.toLowerCase()} callout.`,
+        ),
+      )
+      .join('\n\n');
+    const root = await makeTree({ 'alerts.md': doc });
+
+    for (const scheme of ['light', 'dark'] as const) {
+      const page = await context.newPage();
+      await page.emulateMedia({ colorScheme: scheme });
+      await page.goto(fileUrl(`${root}/alerts.md`));
+      await expect(page.locator('.mw-doc h1')).toBeVisible();
+      await expect(page.locator('.mw-alert')).toHaveCount(5);
+
+      const results = await audit(page);
+      expect(results.violations, `${scheme}: ${describeViolations(results)}`).toEqual([]);
+      await page.close();
+    }
+  });
+
   test('a document with real code, maths and a diagram has no violations', async ({
     context,
     fileUrl,

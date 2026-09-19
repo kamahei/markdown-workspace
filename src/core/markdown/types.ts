@@ -1,3 +1,5 @@
+import { DEFAULT_ALERT_LABELS, type AlertLabels } from './alert-plugin';
+
 /**
  * The two-phase render contract (.project/decision-log.md D4).
  *
@@ -89,6 +91,14 @@ export interface RenderOptions {
   math?: boolean;
   /** Emit diagram placeholders for ```mermaid fences. */
   diagrams?: boolean;
+  /**
+   * Titles for GitHub's alert blocks, translated.
+   *
+   * Injected rather than looked up, because `src/core/` has no translator
+   * by design -- the same reason enrichment takes its messages as an
+   * argument. Omitted, the titles are English.
+   */
+  alertLabels?: AlertLabels;
 }
 
 export interface RenderResult {
@@ -109,4 +119,5 @@ export const DEFAULT_RENDER_OPTIONS: Required<RenderOptions> = {
   breaks: false,
   math: true,
   diagrams: true,
+  alertLabels: DEFAULT_ALERT_LABELS,
 };

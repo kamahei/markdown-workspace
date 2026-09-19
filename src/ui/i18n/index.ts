@@ -1,3 +1,4 @@
+import type { AlertLabels } from '@core/markdown';
 import { en } from './en';
 
 /**
@@ -87,4 +88,21 @@ export function themeKey(theme: 'system' | 'light' | 'dark'): MessageKey {
   if (theme === 'light') return 'themeLight';
   if (theme === 'dark') return 'themeDark';
   return 'themeSystem';
+}
+
+/**
+ * Titles for GitHub's alert blocks, in the reader's language.
+ *
+ * The renderer needs these as data because `src/core/` has no translator,
+ * so this is the seam between the catalogue and a pure module -- the same
+ * arrangement enrichment uses for its failure messages.
+ */
+export function alertLabels(): AlertLabels {
+  return {
+    note: t('alertNote'),
+    tip: t('alertTip'),
+    important: t('alertImportant'),
+    warning: t('alertWarning'),
+    caution: t('alertCaution'),
+  };
 }

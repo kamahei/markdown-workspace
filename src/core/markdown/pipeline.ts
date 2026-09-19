@@ -3,8 +3,10 @@ import anchorPlugin from 'markdown-it-anchor';
 import footnotePlugin from 'markdown-it-footnote';
 import deflistPlugin from 'markdown-it-deflist';
 import taskListsPlugin from 'markdown-it-task-lists';
+import { full as emojiPlugin } from 'markdown-it-emoji';
 import type { Token } from 'markdown-it';
 
+import { alertPlugin, DEFAULT_ALERT_LABELS } from './alert-plugin';
 import { mathPlugin } from './math-plugin';
 import { cjkPlugin } from './cjk';
 import { SlugRegistry } from './slug';
@@ -95,11 +97,20 @@ export function createRenderer(options: RenderOptions = {}): MarkdownRenderer {
   md.use(deflistPlugin);
   md.use(taskListsPlugin, { label: true, labelAfter: true });
 
+  // `:tada:` and friends. READMEs are full of them, and an unrendered
+  // shortcode reads as a typo rather than as a missing feature.
+  md.use(emojiPlugin);
+
   if (opts.math) md.use(mathPlugin);
 
   // Always on: a wrapped Japanese sentence must not gain a space in the
   // middle of it. Latin text is unaffected.
   md.use(cjkPlugin);
+
+  // Also always on. GitHub's alert syntax is not a feature anybody would
+  // switch off: without it the marker shows up as literal text, which is
+  // worse than either rendering it or not supporting it at all.
+  md.use(alertPlugin, opts.alertLabels ?? DEFAULT_ALERT_LABELS);
 
   // --- Fences become code or diagram placeholders -------------------------
 

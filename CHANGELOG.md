@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- GitHub's alert syntax. `> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`
+  and `[!CAUTION]` render as callouts instead of as a quote containing the
+  literal marker. A `docs/` folder written for GitHub no longer reads worse
+  here than on the site it was written for, which for an extension whose
+  point is reading such folders was the wrong way round. Anything else in
+  the same shape stays an ordinary quote.
+- Emoji shortcodes: `:tada:` renders as an emoji.
+- A copy button on every code block, for both highlighted and plain ones.
+  It copies the code and nothing else — not the button's own label, and
+  without the trailing newline that would run the last command on paste.
+
 ## [0.2.0] - 2026-09-19
 
 ### Added

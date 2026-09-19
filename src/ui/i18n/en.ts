@@ -133,6 +133,7 @@ export const en = {
   onboardingStep3: 'Turn on {1}',
   onboardingStep3Toggle: 'Allow access to file URLs',
   copyAddress: 'Copy address',
+  copyCode: 'Copy code',
   copied: 'Copied',
   onboardingNotEnabled: 'Not enabled yet.',
   onboardingNotEnabledBody:
@@ -254,6 +255,13 @@ export const en = {
   optionsResetConfirm: 'Yes, reset everything',
   optionsResetting: 'Resetting…',
   optionsCancel: 'Cancel',
+
+  // --- GitHub alert blocks ----------------------------------------------
+  alertNote: 'Note',
+  alertTip: 'Tip',
+  alertImportant: 'Important',
+  alertWarning: 'Warning',
+  alertCaution: 'Caution',
 
   // --- Enrichment failures ----------------------------------------------
   diagramFailed: 'Could not render this diagram',

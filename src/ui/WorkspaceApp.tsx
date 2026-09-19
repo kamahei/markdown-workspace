@@ -42,7 +42,7 @@ import { useSidebarWidth } from './hooks/useSidebarWidth';
 import { useActiveHeading } from './hooks/useActiveHeading';
 import { useFolderSearch } from './hooks/useFolderSearch';
 import { useEnrichment } from './hooks/useEnrichment';
-import { t, themeKey } from './i18n';
+import { alertLabels, t, themeKey } from './i18n';
 
 export interface RecentEntry {
   id: string;
@@ -216,11 +216,11 @@ export function WorkspaceApp({
       setError(null);
       try {
         const content = await fileSource.readFile(path);
-        const result = renderMarkdown(
-          content.text ?? '',
-          sanitizer,
-          renderOptionsFrom(settings),
-        );
+        const result = renderMarkdown(content.text ?? '', sanitizer, {
+          ...renderOptionsFrom(settings),
+          // The renderer cannot translate; the catalogue lives here.
+          alertLabels: alertLabels(),
+        });
 
         const tab: Tab = { id: path, title: basename(path), path };
         setDocuments((prev) =>
